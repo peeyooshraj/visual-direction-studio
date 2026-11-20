@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Visual Direction Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a print-shop workbench. Sticky masthead + tabbed workspaces (Brief → Directions → Editor), with Library and History as tools. Editor = vector rows left, proof sheet right. */
+:root{
+  --paper:#EEF0EA; --surface:#FFFFFF; --sunk:#E4E7DF; --ink:#1A1C29; --muted:#5B6070; --line:#D3D6CC;
+  --accent:#E3305C; --accent-ink:#FFFFFF; --blue:#2A3BA8; --blue-soft:#DDE2FA;
+  --good:#23794A; --warn:#A86A12; --bad:#B93228;
+  --f-display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#111219; --surface:#1A1C26; --sunk:#151720; --ink:#ECEDF3; --muted:#A2A6B6; --line:#2D303D;
+  --accent:#FF5C82; --accent-ink:#16070C; --blue:#93A4FF; --blue-soft:#232A52;
+  --good:#5FCB8E; --warn:#E3AC4E; --bad:#F2766B; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#111219; --surface:#1A1C26; --sunk:#151720; --ink:#ECEDF3; --muted:#A2A6B6; --line:#2D303D;
+  --accent:#FF5C82; --accent-ink:#16070C; --blue:#93A4FF; --blue-soft:#232A52;
+  --good:#5FCB8E; --warn:#E3AC4E; --bad:#F2766B; color-scheme:dark;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.1}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
+
+/* masthead */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;padding-block:12px;flex-wrap:wrap}
+.mark{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:-.01em;position:relative;white-space:nowrap}
+.mark span{color:var(--ink);text-shadow:2px 1px 0 color-mix(in srgb,var(--accent) 70%,transparent),-1px -1px 0 color-mix(in srgb,var(--blue) 55%,transparent)}
+.mark small{font-family:var(--f-mono);font-weight:400;font-size:11px;color:var(--muted);margin-left:8px;letter-spacing:.06em}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+nav.tabs a{font-family:var(--f-mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;text-decoration:none;color:var(--muted);padding:7px 11px;border-radius:var(--r);border:1px solid transparent}
+nav.tabs a:hover{color:var(--ink);border-color:var(--line)}
+nav.tabs a[aria-current="page"]{color:var(--accent-ink);background:var(--accent)}
+nav.tabs .sep{width:1px;background:var(--line);margin:4px 6px}
+
+main{padding-block:28px 64px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.lede{color:var(--muted);max-width:68ch;margin:8px 0 0}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.pagehead h1{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.02em}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);padding:8px 13px;border-radius:var(--r);cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.blue{background:var(--blue);color:var(--surface);border-color:var(--blue)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.hint{font-size:12.5px;color:var(--muted)}
+textarea,input[type=text],select{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px}
+textarea{resize:vertical;min-height:120px;line-height:1.5}
+select{padding:7px 9px}
+
+/* brief */
+.brief-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fields .full{grid-column:1/-1}
+.interp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.interp div{border-top:2px solid var(--ink);padding-top:8px}
+.interp b{display:block;font-family:var(--f-display);font-size:18px;font-weight:700;margin-top:2px}
+.status{font-size:13px;color:var(--muted);min-height:20px}
+.status.err{color:var(--bad)}
+.claude-note{font-size:12.5px;color:var(--muted);border-left:3px solid var(--blue);padding:4px 10px;margin-top:12px}
+
+/* directions */
+.dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.dcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.dcard canvas{display:block;width:100%;background:var(--sunk)}
+.dcard .body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.dcard h3{font-size:21px;font-weight:700}
+.dcard .concept{font-weight:500}
+.dcard .why{font-size:13.5px;color:var(--muted)}
+.picklist{list-style:none;padding:0;margin:0;font-size:13px;border-top:1px solid var(--line)}
+.picklist li{display:grid;grid-template-columns:118px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.picklist li span:first-child{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:2px}
+.swatches{display:flex;gap:0;border-radius:4px;overflow:hidden;height:22px;border:1px solid var(--line)}
+.swatches i{flex:1}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;padding:2px 7px;border-radius:99px;background:var(--blue-soft);color:var(--blue)}
+.tag.rec{background:var(--accent);color:var(--accent-ink)}
+.tag.ex{background:var(--sunk);color:var(--muted);border:1px dashed var(--line)}
+
+/* editor */
+.ed-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+.vrows{display:flex;flex-direction:column;gap:10px}
+.vrow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.vrow.locked{border-color:var(--blue);box-shadow:inset 3px 0 0 var(--blue)}
+.vrow.design{background:color-mix(in srgb,var(--surface) 85%,var(--blue-soft))}
+.vrow .fam{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vrow .fam .eyebrow{color:var(--muted)}
+.vrow select{font-family:var(--f-display);font-weight:700;font-size:17px;border:none;padding:2px 0;background:transparent;width:auto;max-width:100%}
+.vrow .acts{display:flex;gap:4px;align-items:flex-start}
+.vrow .full{grid-column:1/-1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12.5px;border:1px solid var(--line);background:transparent;border-radius:99px;padding:3px 10px;cursor:pointer;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip:hover{border-color:var(--ink)}
+.intens{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--muted)}
+.intens input{flex:1;accent-color:var(--accent)}
+.intens output{font-family:var(--f-mono);min-width:92px;text-align:right;color:var(--ink)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);width:32px;height:32px;display:grid;place-items:center;cursor:pointer;padding:0}
+.iconbtn:hover{border-color:var(--ink)}
+.iconbtn[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--surface)}
+.iconbtn svg{width:16px;height:16px}
+.side{display:flex;flex-direction:column;gap:16px}
+.proof canvas{width:100%;display:block;border-radius:6px;background:var(--sunk)}
+.score{display:flex;align-items:center;gap:12px}
+.score .num{font-family:var(--f-display);font-size:38px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.meter{flex:1;height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--good)}
+.rels{list-style:none;padding:0;margin:10px 0 0;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.rels li{display:grid;grid-template-columns:22px 1fr;gap:6px}
+.rels .k{font-family:var(--f-mono);font-weight:600;text-align:center;border-radius:4px}
+.k.plus{color:var(--good)} .k.tilde{color:var(--warn)} .k.x{color:var(--bad)}
+pre.out{white-space:pre-wrap;word-break:break-word;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:12px;font-family:var(--f-mono);font-size:12.5px;line-height:1.55;margin:0;max-height:420px;overflow:auto}
+.ans{white-space:pre-wrap;font-size:14px;background:var(--sunk);border-radius:var(--r);padding:12px;margin-top:10px;max-height:360px;overflow:auto}
+.ans:empty{display:none}
+.subtabs{display:flex;gap:4px;margin-bottom:10px}
+.subtabs button{font-family:var(--f-mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;border:1px solid var(--line);background:transparent;border-radius:var(--r);padding:5px 9px;cursor:pointer;color:var(--muted)}
+.subtabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.dirtitle input{font-family:var(--f-display);font-weight:800;font-size:clamp(24px,3vw,34px);border:none;background:transparent;padding:0;letter-spacing:-.015em}
+.pal{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pal label{display:flex;flex-direction:column;align-items:center;gap:2px;font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.pal input[type=color]{width:44px;height:30px;border:1px solid var(--line);border-radius:4px;padding:0;background:none;cursor:pointer}
+.toggle{display:flex;gap:8px;align-items:center;font-size:13px}
+.toggle input{accent-color:var(--blue)}
+.filebox{display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+.filebox img{width:56px;height:56px;object-fit:cover;border-radius:4px;border:1px solid var(--line)}
+
+/* library */
+.lib-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
+.libstats{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.libstats b{font-family:var(--f-display);font-size:26px;color:var(--ink);font-weight:800;margin-right:4px}
+.domain{margin-top:18px}
+.domain h2{font-size:13px;font-family:var(--f-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:8px}
+.fam-block{border-top:1px solid var(--line);padding:10px 0}
+.fam-block h3{font-size:16px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.fam-block h3 small{font-family:var(--f-mono);font-weight:400;font-size:11px;color:var(--muted)}
+.stylebtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.stylebtn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:4px 9px;font-size:13px;cursor:pointer}
+.stylebtn:hover{border-color:var(--ink)}
+.stylebtn[aria-current="true"]{background:var(--blue);color:var(--surface);border-color:var(--blue)}
+.stylebtn.inuse{box-shadow:inset 0 -2px 0 var(--accent)}
+.detail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px)}
+.detail h2{font-size:32px;font-weight:800;letter-spacing:-.02em}
+.detail .effect{font-size:16px;margin:6px 0 14px}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:8px 12px;font-size:13.5px;margin:14px 0}
+.kv dt{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);padding-top:2px}
+.kv dd{margin:0}
+
+/* history */
+.vlist{display:flex;flex-direction:column;gap:8px}
+.vitem{display:grid;grid-template-columns:28px 64px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.vitem canvas{width:64px;border-radius:4px;display:block}
+.vitem .meta{font-size:12.5px;color:var(--muted);font-family:var(--f-mono)}
+.vitem b{font-family:var(--f-display);font-size:16px}
+table.diff{width:100%;border-collapse:collapse;font-size:13.5px}
+table.diff th,table.diff td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.diff th{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500}
+tr.chg td{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.tblwrap{overflow-x:auto}
+.empty{border:1px dashed var(--line);border-radius:10px;padding:28px;text-align:center;color:var(--muted)}
+
+@media (max-width:900px){
+  .brief-grid,.ed-grid,.lib-grid{grid-template-columns:minmax(0,1fr)}
+  .side,.detail{position:static}
+  nav.tabs{margin-left:0;width:100%}
+}
+@media (max-width:520px){
+  .fields{grid-template-columns:1fr}
+  .interp{grid-template-columns:1fr}
+  .picklist li{grid-template-columns:96px 1fr}
+  .vitem{grid-template-columns:24px 48px minmax(0,1fr)}
+  .vitem .vacts{grid-column:1/-1}
+  .vitem canvas{width:48px}
+  .kv{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="mark"><span>Visual Direction Studio</span><small>V1.0</small></div>
+    <nav class="tabs" aria-label="Workspaces">
+      <a href="#brief">Brief</a>
+      <a href="#directions">Directions</a>
+      <a href="#editor">Editor</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="#library">Library</a>
+      <a href="#history">History</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+
+<script>
+/* ============================================================
+   1. TECHNIQUE ATLAS  (domain > family > style > sub-techniques)
+   Family line: id|Name|layer(image|design)|param;param
+   Style line:  id|Name|Effect|technique;technique;...
+   ============================================================ */
+const ATLAS_SRC = {
+"Composition & space": `
+composition|Composition|image|Balance tension;Density;Margins
+ swiss-grid|Swiss grid|Order and clarity through a strict modular grid|Strict column grid;Asymmetric grid;Modular fields;Flush-left alignment;Baseline rhythm;Typography-led hierarchy
+ golden-ratio|Golden ratio|Classical balance that guides the eye along a spiral|Phi grid;Spiral focal path;Golden-rectangle crop;Focal point on the spiral eye
+ rule-thirds|Rule of thirds|Off-centre focus that feels natural and calm|Horizon on a third;Subject on a power point;Lead room;Diagonal of thirds
+ asym-editorial|Asymmetrical editorial|Tension and sophistication; weight balanced by empty space|Weighted off-centre subject;Counterweight type block;Open margin field;Scale contrast;Directional gaze
+ symmetric|Central symmetry|Monumental, iconic, ceremonial stillness|Mirror axis;Central icon;Frontal pose;Bilateral ornament;Flat frontal staging
+ radial|Radial|Energy radiating from one centre; unity and celebration|Concentric rings;Spoke lines;Spiral path;Burst rays;Halo framing
+ diagonal|Diagonal dynamic|Speed and momentum|Strong diagonal axis;Constructivist tilt;Rising angle;Crossing diagonals;Leaning type
+ broken-grid|Broken grid|Raw energy; deliberate rule-breaking|Displaced columns;Overlapping modules;Cropped edges;Interrupted alignment;Exposed structure
+ negative-space|Negative-space dominant|Quiet focus and premium restraint|Single small focal point;70% empty field;Isolated subject;Sparse caption
+ frame-in-frame|Frame within frame|Depth and focus through an opening|Doorway frame;Window frame;Arch frame;Nested frames;Silhouetted foreground frame
+ full-bleed|Full-bleed cinematic|Immersion; the image runs edge to edge|Edge-to-edge image;Letterbox bars;Integrated title;Horizon band
+ bento|Modular bento|Structured storytelling in panels|Asymmetric cards;Hero panel;Info tiles;Image/type alternation;Gutter rhythm
+ triangular|Triangular|Stability or ascent through a pyramid structure|Pyramid group;Inverted-triangle tension;Apex focal point
+ repetition|Pattern repetition|Many units read as one identity|Grid of repeats;Rhythm break;Odd one out;Tessellation
+perspective|Perspective & viewpoint|image|Angle severity;Horizon height
+ eye-level|Eye level|Honest, documentary, relatable|Straight-on view;Centred horizon;Neutral lens
+ birds-eye|Bird's-eye|Overview; the pattern and order of a place|High angle;Overhead pattern;Map-like reading;Tiny figures
+ worms-eye|Worm's-eye|Heroism and monumentality|Low angle;Towering subject;Sky backdrop;Converging verticals
+ isometric|Isometric 2.5D|Collectible, diagrammatic world-building|30° axes;No vanishing point;Cutaway sections;Miniature world;Stacked tiers
+ dutch|Dutch angle|Unease, tension, energy|Tilted horizon;Canted frame;Diagonal verticals
+ flat-lay|Top-down flat lay|Objects as a story|Overhead objects;Knolling;Cast shadows;Grid arrangement
+ one-point|One-point perspective|A depth tunnel pulling to the centre|Central vanishing point;Corridor lines;Symmetric depth
+ forced|Forced perspective|Playful impossible scale|Near-far scale trick;Aligned planes;Interaction illusion
+layering|Layering architecture|image|Number of planes;Depth separation;Overlap
+ deep-fmb|Foreground / midground / background|Cinematic depth that tells a story in three planes|Blurred foreground element;Midground subject;Background narrative;Atmospheric falloff
+ paper-cut|Paper-cut depth|Handcrafted shadow-box dimension|Stacked paper planes;Shadows between layers;Clean cut edges;Back-lit glow;5–12 layers
+ flat-layers|Flat graphic layers|Poster clarity with no depth illusion|Hard-edged planes;Overprint;Shape stacking
+ type-layer|Typographic layering|Type and image interleaved in depth|Type behind subject;Type over subject;Ghosted repeated type
+ translucent|Translucent planes|Modern, glassy, airy|Frosted glass;Overlapping tints;Blur behind panels
+ parallax|Parallax stack|Built for motion; depth by offset|Separated plates;Offset layers;Depth-scaled blur
+ cutout-overlap|Overlapping cut-outs|Tactile collage-like assembly|Cut silhouettes;Shadowed overlaps;Misaligned stacking
+framing|Framing & crop|image|Crop tightness
+ natural-frame|Natural framing|Organic enclosure|Foliage frame;Crowd frame;Cloud gap
+ arch-frame|Architectural framing|A frame borrowed from the place itself|Pillars;Arches;Stadium roof lines;Temple tower silhouette
+ shape-frame|Shape-based frame|Graphic enclosure|Circle crop;Arch crop;Badge shape;Ticket-stub shape
+ extreme-crop|Extreme crop|Intimacy and force; a part stands for the whole|Eyes only;Hands detail;Cropped helmet;Off-frame action
+ vignette|Vignette|Focus and nostalgia|Darkened edges;Oval fade;Light falloff
+subject|Subject treatment|image|Subject scale;Subject dominance
+ portrait-large|Large photographic portrait|Human connection; a recognisable hero|Head and shoulders;Three-quarter turn;Direct gaze;Profile
+ silhouette|Silhouette|Iconic form, anonymity, universality|Backlit outline;Filled silhouette;Negative silhouette;Rim edge
+ action-figure|Full-figure action|Peak moment, athletic drama|Mid-motion freeze;Follow-through pose;Motion-blur trail;Low crouch
+ crowd|Crowd as subject|Collective identity|Sea of faces;Raised hands;Banners in the crowd;Blurred mass
+ object-symbol|Object as symbol|Story told through one object|Hero object;Worn object;Object close-up;Object as relic
+ environmental|Environmental portrait|A person inside their place|Subject in context;Small figure in a big place;Working setting
+ implied|Absent / implied subject|Presence through absence|Empty chair;Footprints;Shadow only;Abandoned gear
+ multiples|Multiples & sequence|Many as one|Repeated figure;Sequence frames;Clone grid
+camera|Camera & lens|image|Aperture;Focal length
+ wide|Wide-angle distortion|Immersion and close-up drama|24mm close;Stretched edges;Exaggerated foreground
+ tele|Telephoto compression|Flattened layers, dense crowds|200mm compression;Stacked background;Shallow depth
+ macro|Macro|Hidden detail and texture|Extreme close-up;Texture detail;Razor-thin focus
+ fisheye|Fisheye|Playful street energy|Curved horizon;Bulging centre;Circular frame
+ tiltshift|Tilt-shift|A miniature-world effect|Focus band;Toy-like scale;Saturated colour
+ anamorphic|Anamorphic cinema|Widescreen film look|Oval bokeh;Horizontal flares;2.39:1 frame
+ shallow|Shallow depth of field|Isolation and intimacy|f/1.4 blur;Bokeh highlights;Subject separation
+layout|Layout language|design|Density
+ editorial-mag|Magazine editorial|Premium, journalistic|Cover masthead;Feature spread;Pull quote;Captions;Kicker labels
+ poster|Poster design|One message, read instantly|Title-led;Subject-led;Metaphor-led;Single focal hierarchy
+ brutalist|Brutalist|Raw, loud, anti-polish|Oversized type;System fonts;Exposed grid;Harsh crops;Default colours
+ minimalist|Minimalist|Restraint and clarity|Single focal point;Sparse type;Restrained colour;Generous margins
+ maximalist|Maximalist|Abundance and festival energy|Dense montage;Layered type;Multiple focal areas;Pattern on pattern
+ bauhaus|Bauhaus|Geometric modernism|Primary shapes;Geometric type;Asymmetric balance;Red-yellow-blue
+ constructivist|Constructivist|Revolutionary urgency|Diagonals;Red and black;Photomontage;Directional geometry;Megaphone type
+ deco|Art Deco|Glamour and ceremony|Radial geometry;Gold lines;Ornamental borders;Stepped forms;Symmetry
+ japanese|Japanese ma|Calm, spacious, considered|Ma (charged empty space);Vertical type;Seal mark;Organic asymmetry
+ memphis|Memphis|Playful, pop, irreverent|Squiggles;Confetti shapes;Clashing pattern;Pastel with black
+ broadsheet|Newspaper broadsheet|Documentary authority|Masthead;Multi-column;Headline deck;Dateline;Halftone photo
+ swiss-poster|Swiss photographic poster|Objective modernism|Strict grid;Monochrome image;Large sans;Flush-left text`,
+"Colour": `
+colorTreatment|Colour treatment|image|Saturation;Contrast
+ monochrome|Monochrome|Unity, gravitas, timelessness|High-contrast black and white;Matte monochrome;Single-hue tint;Crushed blacks
+ duotone|Duotone|A graphic, branded photographic look|Two-ink duotone;Gradient map;Shadow and highlight inks;Brand-colour duotone
+ tritone|Tritone|Rich tonal depth from print|Three-ink tonal;Warm tritone;Cool tritone
+ split-tone|Split toning|Mood from tinted shadows and highlights|Warm highlights;Cool shadows;Balance shift
+ selective|Selective colour|Directs the eye to one meaning|Isolated subject colour;Isolated brand colour;Desaturated surround;Colour masking
+ natural|Natural full colour|Truthful, documentary|Accurate skin;Neutral white balance;Gentle contrast
+ blocking|Colour blocking|Bold graphic zones|Geometric blocks;Diagonal fields;Overlapping planes;Colour-field background
+ inverted|Inverted / negative|Strange, otherworldly|Full inversion;Partial inversion;Negative-film look
+palette|Colour relationship|image|Accent ratio
+ complementary|Complementary|Maximum vibrancy and contrast|Opposite hues;60-30-10 split;Accent pop
+ analogous|Analogous|Harmony and calm|Neighbouring hues;Gradient family;Temperature cohesion
+ triadic|Triadic|Playful balance|Three equidistant hues;One dominant hue
+ split-comp|Split-complementary|Contrast with less tension|Base hue plus the two neighbours of its complement
+ tetradic|Tetradic|Rich, complex colour|Two complementary pairs;Dominant pair
+ tints|Monochromatic tints|Elegant and unified|Tints;Shades;Tones of one hue
+ limited-ink|Limited ink set|Print-like discipline|Four inks;Overprint mixes;Paper as fifth colour
+ wada|Classic Japanese combination|Curated vintage harmony|Historic pairing;Muted pairing;Unexpected accent
+colorChar|Colour character|image|Saturation
+ muted|Muted|Sophisticated, editorial|Greyed hues;Low chroma;Dusty tones
+ pastel|Pastel|Soft, optimistic|Light tints;Powdery finish;Low contrast
+ earthy|Earthy|Grounded, heritage|Ochre;Terracotta;Olive;Umber
+ fluorescent|Fluorescent|Loud, youthful, riso-like|Fluoro pink;Fluoro yellow;Electric blue
+ jewel|Jewel tones|Rich, premium|Emerald;Sapphire;Ruby;Gold
+ highkey|High-key|Airy, clean, hopeful|Bright whites;Soft shadows;Lifted blacks
+ lowkey|Low-key|Dramatic, serious|Deep shadows;Sparse highlights;Dark ground
+grading|Colour grading|image|Strength;Shadow tint;Highlight tint
+ teal-orange|Teal & orange|Blockbuster contrast|Teal shadows;Orange skin tones;Complementary split
+ bleach|Bleach bypass|Gritty, metallic, war-film|Desaturated;High contrast;Silver retention
+ crossproc|Cross-processing|Unpredictable, indie|Colour shifts;Cyan-yellow cast;Punchy contrast
+ faded|Faded film|Nostalgia and memory|Lifted blacks;Matte curve;Soft colour
+ warm-vintage|Warm vintage|Heritage and warmth|Amber cast;Sepia lean;Soft highlights
+ cool-industrial|Cool industrial|Steel and discipline|Blue-grey cast;Cold whites;Muted skin
+ lowsat|Low-saturation cinematic|Restrained, serious|Desaturated mid-tones;Selective warmth
+ portra|Portra-inspired film|Gentle skin, warm pastels|Warm skin;Soft greens;Fine grain
+ ektachrome|Ektachrome-inspired film|Vivid slide film|Saturated blues;Crisp contrast
+ expired|Expired film|Accidental, dreamy|Colour shifts;Fog;Heavy grain
+ infrared|Infrared|Surreal, otherworldly|Pink foliage;Dark skies;Glowing whites`,
+"Light & atmosphere": `
+lighting|Lighting|image|Contrast ratio;Direction
+ hard|Hard light|Drama, clarity, crisp shadows|Direct sun;Hard shadows;Specular highlights
+ soft|Soft diffused|Gentle, flattering|Overcast;Large softbox;Wraparound light
+ rembrandt|Rembrandt|Painterly portrait gravitas|Triangle of light on the cheek;45° key;Dark side of the face
+ rim|Rim / backlight|Separation and glow|Edge halo;Backlit hair;Contre-jour
+ chiaroscuro|Chiaroscuro|Caravaggio-like drama|Deep blacks;Single source;Sculpted form
+ volumetric|Volumetric light|Sacred, epic atmosphere|God rays;Light shafts;Dust in the beam
+ golden|Golden hour|Warm nostalgia|Low sun;Long shadows;Amber glow
+ blue|Blue hour|Calm melancholy|Cool twilight;City lights;Soft ambient light
+ flood|Stadium floodlights|Night-match electricity|High light towers;Multiple shadows;Haze in the lights;Cold-white glare
+ neon|Neon glow|Urban night energy|Coloured gels;Wet reflections;Glow halos
+ under|Underlighting|Unease, theatre|Low source;Upward shadows
+ split|Split lighting|Duality and conflict|Half-lit face;Hard divide
+atmosphere|Atmosphere & optics|image|Density
+ haze|Atmospheric haze|Depth and distance|Aerial perspective;Soft background;Milky air
+ fog|Fog layering|Mystery|Ground fog;Layered mist
+ smoke|Smoke|Celebration or battle|Coloured smoke;Pyro smoke;Drifting plumes
+ bloom|Bloom & halation|Dreamy glow|Highlight bloom;Red halation;Soft glow
+ flare|Lens flare|Heat and drama|Sun flare;Anamorphic streak;Ghosting
+ leaks|Light leaks|Analogue accident|Orange leaks;Edge burns;Film burn
+ particles|Particles|Life in the air|Dust motes;Confetti;Sparks;Rain`,
+"Image & material": `
+photo|Photographic processing|image|Contrast;Clarity
+ bw-high|High-contrast B&W|Force and graphic clarity|Crushed blacks;Blown whites;Grain
+ silver|Silver-gelatin|Fine-art archival quality|Rich tonal range;Warm paper base
+ hdr|HDR|Hyper-real detail|Exposure blending;Shadow recovery;Local contrast
+ solarise|Solarisation|Surreal tonal reversal|Partial reversal;Mackie lines
+ posterise|Posterisation|Graphic flat tones|Limited tonal steps;Hard edges
+ threshold|Threshold|Stark stencil look|1-bit cutoff;Stencil shapes
+ diffusion|Diffusion|Soft dream|Mist filter;Glowing highlights;Lowered clarity
+ microcontrast|Microcontrast|Grit, texture and sweat|Clarity boost;High-pass sharpening
+print|Printmaking|image|Misregistration;Ink coverage;Grain density
+ riso|Risograph|Indie, collectible print|Two-colour plates;Ink overprinting;Misregistration;Halftone screening;Paper absorption;Fluoro inks;Grain layering;Rough registration
+ screen|Screen print|Bold flat poster ink|Spot colours;Stencil layers;Thick ink;Ink trapping;Registration shifts
+ offset|Offset CMYK|Mass-print realism|CMYK separation;Dot gain;Rosette pattern;Registration error
+ litho|Lithography|Soft crayon tone|Grease-crayon marks;Stone grain;Tonal washes
+ woodcut|Woodcut|Folk strength and carved energy|Carved linework;Negative-space carving;Woodgrain;Rough ink
+ linocut|Linocut|Bold carved simplicity|Bold contours;Simplified shadows;Gouge marks
+ letterpress|Letterpress|Tactile craft|Deboss impression;Ink-pressure halo;Wood type
+ cyanotype|Cyanotype|Blueprint memory|Prussian blue;Contact print;Sun-exposed edges
+ newsprint|Newspaper print|Documentary, everyday|Coarse halftone;Ink bleed;Yellowed paper
+ photocopy|Photocopy / Xerox|Underground, zine|Toner streaks;Contrast crush;Generation loss
+ halftone|Halftone|Pop and print reproduction|Dot screen;Line screen;Large dots;45° screen angle
+ dither|Dithering|Digital-print hybrid|Ordered dithering;Error-diffusion dithering;1-bit
+ engraving|Engraving|Banknote authority|Parallel lines;Crosshatching;Intaglio texture
+ stipple|Stipple|Meticulous, scientific|Dot tone;Stippled gradient
+texture|Texture & material|image|Intensity;Scale
+ paper-grain|Paper grain|A tactile printed object|Cotton rag;Kraft;Newsprint;Rice paper;Deckle edges
+ torn|Torn paper edges|Raw handmade collage|Ripped white fibres;Layered tears;Masking tape
+ creases|Folds & creases|Handled and archival|Fold lines;Crumple;Worn corners
+ film-grain|Film grain|Analogue authenticity|35mm grain;16mm grain;Gate weave
+ dust|Dust & scratches|Age and memory|Specks;Hairlines;Scratches
+ ink-bleed|Ink bleed|Organic print imperfection|Feathered edges;Uneven coverage;Dry ink
+ canvas|Canvas / fabric|Painterly, textile|Canvas weave;Linen;Denim;Felt
+ relief|Emboss / deboss|Premium tactility|Raised ink;Blind deboss;Foil stamp
+ watercolor-tex|Watercolour bloom|Fluid and organic|Pigment granulation;Back-runs;Wash edges
+ digital-noise|Digital noise|Contemporary grit|Procedural grain;Chroma noise
+ stacking|Texture stacking|Depth of surface|Multiple overlays;Masked distressing;Local textures
+compositing|Compositing|image|Blend strength;Mask softness
+ double-exposure|Double exposure|Fuses a person with a place or an idea|Portrait + landscape;Portrait + architecture;Silhouette + crowd;Luminosity blend;Gradient-mask fade
+ masking|Image masking|A controlled reveal of one image inside another|Layer mask;Luminosity mask;Gradient mask;Subject mask
+ clip-type|Image inside shapes|Words and shapes become windows|Image in letters;Image in shapes;Knockout type
+ blend|Blending modes|Unexpected tonal fusions|Multiply;Screen;Overlay;Difference;Soft light
+ silhouette-fill|Silhouette fill|An identity filled with meaning|City inside silhouette;Crowd inside silhouette;Pattern fill
+ montage|Photomontage|Several scenes argue one idea|Thematic montage;Documentary montage;Seamless blend
+ matte|Matte painting|Epic environment extension|Skyline extension;Stadium extension;Sky replacement
+ scale|Scale manipulation|Surreal emphasis|Giant figure;Miniature city;Impossible scale
+ displacement|Displacement|An image bound to a surface|Displacement map;Fabric wrap;Liquid distortion
+ reflection|Reflection|Duality and mirrored meaning|Water reflection;Mirror symmetry;Glass reflection
+ cutout|Floating cut-out|A pop-out graphic subject|Background removal;White sticker edge;Drop shadow
+collage|Collage & mixed media|image|Fragment count;Density
+ photo-collage|Photographic cut-out collage|Editorial wit|Cut figures;Scale play;Hard shadows
+ torn-collage|Torn-paper collage|Raw, handmade|Ripped layers;Tape;Coloured papers
+ cut-paper|Cut-paper illustration|A crafted shape language|Coloured paper shapes;Matisse-like cut-outs
+ scrapbook|Scrapbook|Personal memory|Polaroids;Tickets;Handwriting;Stickers
+ zine|Zine collage|DIY underground|Xerox texture;Scissor cuts;Ransom type;Staples
+ editorial-collage|Editorial magazine collage|Smart conceptual commentary|Masked photos;Geometric shapes;Grid order
+ archive|Archive-document collage|History presented as evidence|Old documents;Stamps;Annotations;Index cards
+ clippings|Newspaper clippings|News memory|Headline fragments;Yellowed paper;Pins
+ filmstrip|Film-strip collage|A cinematic sequence|Sprocket holes;Contact sheet;Frame numbers
+ sticker|Sticker bombing|Youth and chaos|Layered stickers;Slaps;Peeling edges
+ ransom|Ransom-note type|Letters from mixed sources|Cut letters;Mixed fonts
+ surreal-jux|Surreal juxtaposition|Dream logic|Impossible pairings;Floating objects
+ assemblage|Mixed-media assemblage|Material richness|Paint + photo;Fabric + print;Found objects
+digital|Digital distortion|image|Intensity;Frequency
+ glitch|Glitch|Digital disruption|Datamosh;Digital tearing;Block corruption
+ rgb|RGB split / chromatic|Vibration and speed|Channel offset;Colour fringing;Chromatic aberration
+ crt|CRT scanlines|Broadcast nostalgia|Scanlines;Phosphor glow;Screen curvature
+ vhs|VHS|Home-video memory|Tracking lines;Colour bleed;Timestamp
+ pixelsort|Pixel sorting|Melting data aesthetic|Vertical sort;Brightness threshold
+ pixel|Pixelation|Retro digital|Mosaic;8-bit blocks
+ kaleido|Kaleidoscope|Hypnotic symmetry|Mirror slices;Tessellation
+ liquify|Liquify / warp|Fluid distortion|Wave;Ripple;Turbulence
+ jpeg|Compression artefacts|Internet-native degradation|Blocking;Mosquito noise
+ moire|Moiré|Optical vibration|Interference pattern;Screen clash
+illustration|Illustration style|image|Stylisation
+ flat-vector|Flat vector|Clean, modern, scalable|Flat fills;Geometric shapes;No outlines
+ geo-vector|Geometric vector|Constructed precision|Circle-based construction;Grid-built shapes
+ oil|Oil painting|Classical weight|Impasto;Glazing;Visible brushwork
+ gouache|Gouache|Matte poster painting|Opaque flats;Chalky texture
+ watercolor|Watercolour|Light and fluid|Wet-on-wet;Dry brush;Granulation
+ inkwash|Ink wash|Expressive restraint|Ink gradients;Splatter;Dry-brush strokes
+ charcoal|Charcoal|Raw emotion|Smudging;Eraser highlights;Heavy blacks
+ crosshatch|Pen crosshatching|Engraved storytelling|Hatching;Stippling;Contour lines
+ ukiyoe|Ukiyo-e inspired|Flat woodblock elegance|Outlined forms;Flat colour;Wave patterns;Cartouche
+ cartoon|Editorial cartoon|Wit and commentary|Caricature;Exaggeration;Wordless gag
+ pixelart|Pixel art|Game nostalgia|Limited palette;Hard pixels;Sprites
+ lowpoly|Low-poly|Faceted digital|Triangle facets;Flat shading
+ clay|3D clay render|Friendly, tactile 3D|Soft clay;Ambient occlusion;Pastel lighting
+ toon|Toon shading|An animated cel look|Cel bands;Ink outlines
+ paper-sculpt|Paper sculpture|Crafted dimension|Folded paper;Quilling;Pop-up construction`,
+"Typography": `
+typeStructure|Typography system|design|Scale contrast;Tracking
+ swiss-type|Swiss editorial|Objective clarity|Grotesque sans;Flush-left;Strict hierarchy;Small-caps labels
+ mag-type|Magazine cover|A premium headline voice|Masthead;Cover lines;Serif display;Kicker
+ brutal-type|Brutalist|Loud and raw|Huge condensed type;Tight leading;Edge-cropped words
+ poster-type|Poster display|Reads instantly at distance|One giant word;Stacked lines;Tight tracking
+ minimal-type|Minimal sparse|Quiet confidence|Small type;Wide tracking;Lots of air
+ deco-type|Art Deco display|Ceremony and glamour|Geometric capitals;Inline letters;Gold
+ hand-type|Hand-lettered|Human and crafted|Brush script;Sign-painter lettering;Chalk
+ vertical-type|Vertical / stacked|Architectural rhythm|Vertical setting;Stacked letters;Rotated spine text
+letterform|Letterform treatment|design|Weight;Width
+ condensed|Condensed|Height and urgency|Compressed sans;Tall capitals
+ extended|Extended|Wide, stable, modern|Wide sans;Spaced capitals
+ serif-display|Oversized serif|Heritage elegance|High-contrast serif;Italic accent
+ outlined|Outlined|Lightness and layering|Stroke only;Double outline
+ extruded|Extruded / 3D|Monumental|Long shadow;Block extrusion
+ distressed|Distressed|Worn history|Eroded edges;Stamp texture
+ fragmented|Fragmented|Tension and breakage|Sliced letters;Offset pieces
+ warped|Warped / on a path|Motion and flow|Arc text;Perspective distortion;Wave
+ mono|Monospaced|Technical, data-like|Mono capitals;Metadata strips
+ mixed-weights|Mixed weights|Hierarchy inside one line|Light + black;Italic switch
+typeIntegration|Type–image integration|design|Overlap
+ behind|Text behind subject|Depth and integration|Title hidden by the head;Layered depth
+ front|Text over subject|Directness|Overlay title;Knockout
+ inside|Image inside letters|Words as windows|Clipping mask;Photo fill
+ pattern|Type as pattern|Chant and repetition|Repeated word field;Texture of names
+ env-type|Type in the environment|Lettering that belongs to the place|Painted wall;Stadium signage;Banner
+ circular|Circular type|Seal, badge, unity|Ring text;Stamp
+ breaking|Breaking the frame|Energy beyond the borders|Letters crossing edges;Subject breaks the type`,
+"Meaning & culture": `
+metaphor|Visual metaphor|image|Literalness
+ substitution|Object substitution|One thing becomes another|Symbol swapped into the scene;Form rhyme
+ merge|Merged forms|Two identities become one|Hybrid shape;Morph
+ scale-meta|Scale metaphor|Importance shown as size|Giant among tiny;Tiny in the vast
+ juxta|Symbolic juxtaposition|Meaning from a pairing|Old against new;Then and now;Side by side
+ many-as-one|Many-as-one|Collective identity|Crowd forms a shape;Mosaic of faces
+ map|Map as identity|Belonging to a place|Street-map fill;Route lines;Neighbourhood names
+ absence|Absence|Loss and memory|Empty seat;Missing piece
+culture|Cultural motif|image|Prominence
+ kolam|Kolam line geometry|South Indian threshold geometry|Dot grid;Looping lines;Rice-flour white
+ kalamkari|Kalamkari|Hand-painted narrative textile|Pen outlines;Vegetable dyes;Borders
+ madhubani|Madhubani|Dense folk pattern|Double outlines;Fill patterns;Nature motifs
+ tanjore|Tanjore gilding|Devotional gold relief|Gold leaf;Gem inlay;Rich red ground
+ miniature|Miniature painting|Courtly narrative|Flat perspective;Ornate border;Fine detail
+ signage|Hand-painted signage|Street vernacular|Painted letters;Bright enamel;Shop boards
+ temple|Temple architecture|Sacred monumentality|Tiered towers;Pillared halls;Stone relief
+ textile|Textile pattern|Woven belonging|Checks;Silk border;Ikat`
+};
+
+/* parse atlas */
+const FAMILIES = [], STYLES = {}, FAMILY = {};
+for (const [domain, src] of Object.entries(ATLAS_SRC)) {
+  let fam = null;
+  for (const raw of src.split("\n")) {
+    if (!raw.trim()) continue;
+    const parts = raw.trim().split("|");
+    if (!raw.startsWith(" ")) {
+      fam = { id: parts[0], name: parts[1], layer: parts[2], params: parts[3].split(";"), domain, styles: [] };
+      FAMILIES.push(fam); FAMILY[fam.id] = fam;
+    } else {
+      const s = { id: parts[0], name: parts[1], effect: parts[2], techs: parts[3].split(";"), family: fam.id };
+      fam.styles.push(s.id); STYLES[s.id] = s;
+    }
+  }
+}
+const DOMAINS = Object.keys(ATLAS_SRC);
+const TOTAL_TECHS = Object.values(STYLES).reduce((n, s) => n + s.techs.length, 0);
+
+/* ============================================================
+   2. COMBINATION ATLAS  (+ complement · ~ contrast · x conflict)
+   ============================================================ */
+const RULES = [
+ ["double-exposure","masking","+","Masks decide exactly where the two exposures merge."],
+ ["double-exposure","silhouette","+","A clean silhouette gives the second image a strong container."],
+ ["double-exposure","portrait-large","+","A large portrait gives the blend enough area to tell a story."],
+ ["double-exposure","glitch","x","Two competing distortions muddy the fusion."],
+ ["swiss-grid","swiss-type","+","The same modernist logic runs through image and type."],
+ ["swiss-grid","swiss-poster","+","A Swiss grid is the backbone of the Swiss photographic poster."],
+ ["riso","paper-grain","+","Riso ink sits in the paper; visible grain sells it."],
+ ["riso","halftone","+","Riso screens tones with halftone; it reads as authentic."],
+ ["riso","fluorescent","+","Fluoro inks are riso's signature."],
+ ["riso","limited-ink","+","Riso works in a few drums of ink."],
+ ["riso","teal-orange","x","Film grading fights the flat-ink logic of riso."],
+ ["riso","hdr","x","HDR detail contradicts limited-ink printing."],
+ ["screen","flat-vector","+","Flat vector shapes separate cleanly into screen layers."],
+ ["screen","limited-ink","+","Screen printing is spot-colour by nature."],
+ ["isometric","paper-cut","+","Isometric tiers stack naturally as paper planes."],
+ ["isometric","flat-vector","+","Flat fills keep isometric forms crisp."],
+ ["isometric","tele","x","Lens compression contradicts parallel isometric axes."],
+ ["brutal-type","negative-space","~","Loud type against emptiness creates productive tension."],
+ ["brutalist","photocopy","+","Xerox grit matches brutalist rawness."],
+ ["brutalist","pastel","~","Soft colour against hard layout reads as ironic."],
+ ["monochrome","selective","+","A monochrome ground makes one colour mean something."],
+ ["bw-high","selective","+","High-contrast B&W makes the isolated colour hit harder."],
+ ["duotone","halftone","+","Duotone and halftone both come from print reproduction."],
+ ["chiaroscuro","lowkey","+","Chiaroscuro needs a dark key to sculpt form."],
+ ["chiaroscuro","highkey","x","A high-key palette flattens chiaroscuro's shadows."],
+ ["flood","haze","+","Haze makes floodlight beams visible."],
+ ["flood","smoke","+","Smoke in the lights says match night."],
+ ["woodcut","glitch","~","Carved and digital clash; strong only when intended."],
+ ["ukiyoe","japanese","+","Same cultural grammar of space and line."],
+ ["ukiyoe","limited-ink","+","Woodblock prints use a handful of colours."],
+ ["deco","symmetric","+","Art Deco is built on symmetry."],
+ ["deco","jewel","+","Jewel tones and gold are Deco's palette."],
+ ["deco","radial","+","Sunburst radial geometry is a Deco signature."],
+ ["constructivist","diagonal","+","Constructivism lives on the diagonal."],
+ ["constructivist","montage","+","Photomontage was constructivism's image language."],
+ ["photocopy","zine","+","Zines are made on photocopiers."],
+ ["photocopy","pastel","x","Toner crush destroys pastel subtlety."],
+ ["negative-space","maximalist","x","Empty space and density cancel each other."],
+ ["minimalist","sticker","x","Sticker chaos undoes minimal restraint."],
+ ["minimalist","maximalist","x","Opposite layout philosophies."],
+ ["film-grain","faded","+","Grain and lifted blacks belong to the same film memory."],
+ ["film-grain","dust","+","Grain plus dust completes the analogue surface."],
+ ["paper-cut","soft","+","Soft light defines the shadows between paper planes."],
+ ["clay","highkey","+","Clay renders want bright, soft light."],
+ ["clay","bw-high","x","Harsh B&W kills clay's friendliness."],
+ ["behind","portrait-large","+","A big head is the perfect occluder for a title."],
+ ["behind","deep-fmb","+","Type becomes one of the depth planes."],
+ ["kolam","radial","+","Kolam patterns grow radially from a centre."],
+ ["kolam","symmetric","+","Kolam geometry is mirror-symmetric."],
+ ["vhs","crt","+","Same broadcast-era source."],
+ ["rgb","glitch","+","Channel splits are a core glitch move."],
+ ["archive","newsprint","+","Archives are full of newsprint."],
+ ["archive","creases","+","Handled documents fold and crease."],
+ ["torn","torn-collage","+","Torn edges are the material of torn collage."],
+ ["worms-eye","flood","+","Looking up into floodlights is monumental."],
+ ["worms-eye","portrait-large","~","A low angle on a big face can look distorted; keep the lens long."],
+ ["hdr","faded","x","HDR detail and faded film pull in opposite directions."],
+ ["tiltshift","birds-eye","+","Tilt-shift needs a high view to read as miniature."],
+ ["map","silhouette-fill","+","A map filling a silhouette says 'this person is this place'."],
+ ["many-as-one","crowd","+","The crowd itself becomes the symbol."],
+ ["tanjore","jewel","+","Gilding sits naturally with jewel tones."],
+ ["signage","fluorescent","+","Street signage uses loud enamel colour."],
+ ["cyanotype","monochrome","+","Cyanotype is a single-hue process."],
+ ["cyanotype","fluorescent","x","Fluoro colour breaks the cyanotype process."],
+ ["engraving","silver","+","Both carry archival authority."],
+ ["letterpress","paper-grain","+","Letterpress needs soft paper to bite into."],
+ ["relief","minimal-type","+","Deboss rewards sparse, precise type."],
+ ["golden-ratio","negative-space","+","The spiral gives empty space a direction."],
+ ["full-bleed","anamorphic","+","Widescreen lens and edge-to-edge image are one cinematic idea."],
+ ["teal-orange","flood","~","Floodlights are cold-white; teal-orange warms skin against them."],
+ ["extreme-crop","condensed","+","Tight crops and condensed type share urgency."],
+ ["broken-grid","brutal-type","+","Both break the rules on purpose."],
+ ["selective","flood","~","Selective colour under floodlight needs care to keep skin natural."]
+];
+
+/* ============================================================
+   3. EXAMPLE PROJECT (seeded so the tool opens in a working state)
+   ============================================================ */
+const P = (style, techs, intensity = 55, locked = false) => ({ style, techs, intensity, locked });
+const EXAMPLE = {
+  brief: {
+    idea: "Create a CSK tribute that communicates the relationship between Chennai, its people and the team. It should feel premium, emotional and culturally grounded.",
+    format: "16:9", subject: "Chennai Super Kings", message: "Collective identity", emotion: "Pride + belonging",
+    character: "Premium + editorial", avoid: "Lion mascot, flag waving, generic stadium horizon"
+  },
+  directions: [
+    { name: "Cinematic identity", rec: true, concept: "The player and the city become one visual identity.",
+      why: "Double exposure puts Chennai inside the player, so the city and the team read as one body rather than two unrelated objects. Halftone and paper grain keep it from looking like a movie poster.",
+      palette: ["#262B66", "#E2A72E", "#E5664F", "#F1EADB"],
+      picks: { composition: P("asym-editorial", ["Weighted off-centre subject", "Open margin field"], 60),
+        subject: P("portrait-large", ["Three-quarter turn", "Direct gaze"], 70),
+        compositing: P("double-exposure", ["Portrait + architecture", "Gradient-mask fade"], 75),
+        lighting: P("rim", ["Edge halo"], 45),
+        print: P("halftone", ["Large dots", "45° screen angle"], 35),
+        texture: P("paper-grain", ["Cotton rag"], 40),
+        typeStructure: P("mag-type", ["Serif display", "Kicker"], 60),
+        letterform: P("serif-display", ["High-contrast serif"], 60) } },
+    { name: "Tactical architecture", concept: "The stadium itself becomes the symbol of collective identity.",
+      why: "An isometric paper-cut Chepauk avoids the familiar player portrait and turns the ground into a collectible object. Screen-print flats keep the many small details readable.",
+      palette: ["#1F2B2A", "#2C9F9A", "#D6E29A", "#E9EDE3"],
+      picks: { composition: P("swiss-grid", ["Asymmetric grid", "Modular fields"], 50),
+        perspective: P("isometric", ["30° axes", "Miniature world", "Stacked tiers"], 80),
+        layering: P("paper-cut", ["Stacked paper planes", "Shadows between layers"], 70),
+        lighting: P("soft", ["Large softbox"], 40),
+        print: P("screen", ["Spot colours", "Registration shifts"], 50),
+        metaphor: P("many-as-one", ["Crowd forms a shape"], 45),
+        typeStructure: P("swiss-type", ["Grotesque sans", "Flush-left"], 55),
+        letterform: P("condensed", ["Compressed sans"], 55) } },
+    { name: "Urban sports culture", concept: "CSK as an urban sporting movement.",
+      why: "Extreme crops, photocopy grit and one isolated yellow replace nostalgia with force. The broken grid gives it street-poster energy.",
+      palette: ["#111111", "#F5D000", "#8A8A85", "#F3F3EE"],
+      picks: { composition: P("broken-grid", ["Displaced columns", "Cropped edges"], 70),
+        framing: P("extreme-crop", ["Eyes only", "Cropped helmet"], 80),
+        colorTreatment: P("selective", ["Isolated brand colour", "Desaturated surround"], 80),
+        photo: P("bw-high", ["Crushed blacks", "Grain"], 70),
+        print: P("photocopy", ["Toner streaks", "Contrast crush"], 55),
+        typeStructure: P("brutal-type", ["Huge condensed type", "Edge-cropped words"], 85),
+        letterform: P("condensed", ["Tall capitals"], 70) } },
+    { name: "Printmaking heritage", concept: "A collectible printed artwork with a crafted, historical feel.",
+      why: "Four riso inks, overlapping cut-outs and kolam geometry make it feel like a limited-edition print made in Chennai, not a sports graphic.",
+      palette: ["#0B6FB8", "#FF4CA8", "#FFE14D", "#F4EFE4"],
+      picks: { composition: P("radial", ["Concentric rings", "Burst rays"], 55),
+        layering: P("cutout-overlap", ["Cut silhouettes", "Misaligned stacking"], 60),
+        palette: P("limited-ink", ["Four inks", "Overprint mixes"], 70),
+        print: P("riso", ["Ink overprinting", "Misregistration", "Fluoro inks"], 75),
+        culture: P("kolam", ["Dot grid", "Looping lines"], 45),
+        texture: P("paper-grain", ["Rice paper"], 45),
+        typeStructure: P("hand-type", ["Sign-painter lettering"], 60) } }
+  ]
+};
+
+/* ============================================================
+   4. STATE  (per-viewer, kept in browser storage when available)
+   ============================================================ */
+const KEY = "vds.v1";
+const FORMATS = { "16:9": [16, 9], "4:5": [4, 5], "1:1": [1, 1], "9:16": [9, 16], "2:3": [2, 3], "3:2": [3, 2] };
+const clone = o => JSON.parse(JSON.stringify(o));
+function freshState() {
+  const ex = clone(EXAMPLE);
+  return { brief: ex.brief, directions: ex.directions, example: true, dir: clone(ex.directions[0]),
+    versions: [], noTypeInImage: true, note: "Make the subject less dominant; give the background more visual storytelling.", genTarget: "natural" };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || freshState(); } catch { S = freshState(); }
+if (!S.versions) S.versions = [];
+if (!S.versions.length) S.versions.push({ id: uid(), t: Date.now(), label: "Opened “" + S.dir.name + "”", dir: clone(S.dir) });
+let undoStack = [];
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function snapshot() { undoStack.push(clone(S.dir)); if (undoStack.length > 60) undoStack.shift(); }
+
+/* ============================================================
+   5. HELPERS
+   ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const level = v => v < 34 ? "subtle" : v < 67 ? "moderate" : "dominant";
+const famOrder = id => FAMILIES.findIndex(f => f.id === id);
+const sortedPicks = d => Object.entries(d.picks).sort((a, b) => famOrder(a[0]) - famOrder(b[0]));
+function hashStr(s) { let h = 1779033703; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 3432918353), h = h << 13 | h >>> 19; return h >>> 0; }
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const ICON = {
+  lock: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>',
+  x: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+  dice: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="6" cy="6" r=".9" fill="currentColor"/><circle cx="10" cy="10" r=".9" fill="currentColor"/></svg>'
+};
+
+function relationsFor(ids) {
+  const set = new Set(ids), out = [];
+  for (const [a, b, k, note] of RULES) if (set.has(a) && set.has(b) && note) out.push({ a, b, k, note });
+  return out;
+}
+function coherence(d) {
+  const ids = Object.values(d.picks).map(p => p.style);
+  const rels = relationsFor(ids);
+  let score = 68;
+  for (const r of rels) score += r.k === "+" ? 7 : r.k === "~" ? 3 : -14;
+  const dominant = Object.values(d.picks).filter(p => p.intensity >= 67).length;
+  const warnings = [];
+  if (dominant > 3) { score -= (dominant - 3) * 5; warnings.push(dominant + " vectors are set to dominant. Pick one or two heroes and let the rest support them."); }
+  const imgCount = Object.keys(d.picks).filter(f => FAMILY[f].layer === "image").length;
+  if (imgCount > 9) { score -= 6; warnings.push("More than nine image vectors tends to blur the idea. Consider removing one."); }
+  if (imgCount < 3) warnings.push("Very few image vectors; the generator will fill the gaps with its own defaults.");
+  return { score: Math.max(5, Math.min(99, Math.round(score))), rels, warnings };
+}
+
+/* ============================================================
+   6. PROMPT COMPILER  (image layer vs editable design layer)
+   ============================================================ */
+function compile(d = S.dir, b = S.brief) {
+  const fmt = b.format || "16:9";
+  const img = [], des = [];
+  for (const [fid, p] of sortedPicks(d)) {
+    const f = FAMILY[fid], s = STYLES[p.style];
+    const line = `${f.name}: ${s.name}${p.techs.length ? " (" + p.techs.join(", ") + ")" : ""}, ${level(p.intensity)}.`;
+    (f.layer === "design" ? des : img).push(line);
+  }
+  const typeOut = S.noTypeInImage && des.length;
+  const prompt = [
+    `${fmt} artwork. Idea: ${b.idea.trim()}`,
+    b.message || b.emotion ? `Core message: ${b.message || "—"}. Emotional register: ${b.emotion || "—"}. Visual character: ${b.character || "—"}.` : "",
+    `Art direction “${d.name}”: ${d.concept}`,
+    ...img,
+    `Colour palette: ${d.palette.join(", ")} (primary, accent, secondary, ground).`,
+    typeOut ? "Leave clean negative space for a title; no text, letters, numbers or logos in the image." : des.length ? "Typography in the image — " + des.join(" ") : "",
+    S.note ? `Revision note: ${S.note}` : ""
+  ].filter(Boolean).join("\n");
+  const avoid = [b.avoid, ...relationsFor(Object.values(d.picks).map(p => p.style)).filter(r => r.k === "x").map(r => `the clash between ${STYLES[r.a].name} and ${STYLES[r.b].name}`)].filter(Boolean).join("; ");
+  const designLayer = typeOut ? des.join("\n") : "";
+  return { prompt, avoid, designLayer };
+}
+function revisionSpec() {
+  const prev = S.versions[S.versions.length - 1]?.dir;
+  const locked = sortedPicks(S.dir).filter(([, p]) => p.locked).map(([f, p]) => `${FAMILY[f].name}: ${STYLES[p.style].name}`);
+  const changes = prev ? diffDirs(prev, S.dir).filter(r => r.changed).map(r => `${r.family}: ${r.a} → ${r.b}`) : [];
+  return [
+    `REVISION SPEC — ${S.dir.name}`,
+    locked.length ? "Keep exactly: " + locked.join("; ") : "Nothing locked.",
+    changes.length ? "Change since last saved version:\n- " + changes.join("\n- ") : "No vector changes since the last saved version.",
+    S.note ? "Direction note: " + S.note : ""
+  ].filter(Boolean).join("\n");
+}
+function describePick(fid, p) { return `${STYLES[p.style].name}${p.techs.length ? " [" + p.techs.join(", ") + "]" : ""} · ${level(p.intensity)}`; }
+function diffDirs(a, b) {
+  const fams = [...new Set([...Object.keys(a.picks), ...Object.keys(b.picks)])].sort((x, y) => famOrder(x) - famOrder(y));
+  const rows = fams.map(f => {
+    const pa = a.picks[f], pb = b.picks[f];
+    const sa = pa ? describePick(f, pa) : "—", sb = pb ? describePick(f, pb) : "—";
+    return { family: FAMILY[f].name, a: sa, b: sb, changed: sa !== sb };
+  });
+  const pa = a.palette.join(" "), pb = b.palette.join(" ");
+  rows.push({ family: "Palette", a: pa, b: pb, changed: pa !== pb });
+  return rows;
+}
+
+/* ============================================================
+   7. PROOF SHEET — a schematic sketch of the direction
+   ============================================================ */
+function drawBoard(cv, d, fmt = S.brief.format, W = 640) {
+  const [aw, ah] = FORMATS[fmt] || [16, 9];
+  const H = Math.round(W * ah / aw);
+  cv.width = W; cv.height = H; cv.style.aspectRatio = aw + " / " + ah;
+  const g = cv.getContext("2d"), [c0, c1, c2, c3] = d.palette, R = rng(hashStr(d.name + Object.values(d.picks).map(p => p.style).join()));
+  const pk = f => d.picks[f]?.style, iv = f => (d.picks[f]?.intensity ?? 0) / 100;
+  const comp = pk("composition"), u = Math.min(W, H);
+  g.fillStyle = c3; g.fillRect(0, 0, W, H);
+  // colour blocking / ground
+  if (pk("colorTreatment") === "blocking" || pk("layout") === "bauhaus") {
+    g.fillStyle = c2; g.fillRect(W * .62, 0, W * .38, H * .55);
+    g.fillStyle = c1; g.beginPath(); g.moveTo(0, H); g.lineTo(W * .45, H); g.lineTo(0, H * .5); g.fill();
+  }
+  // composition guides
+  g.save(); g.globalAlpha = .9;
+  let sx = W * .62, sy = H * .55, ss = u * .42;
+  if (comp === "swiss-grid" || comp === "bento") {
+    g.strokeStyle = c0; g.globalAlpha = .18; g.lineWidth = 1;
+    for (let i = 1; i < 12; i++) { g.beginPath(); g.moveTo(W * i / 12, 0); g.lineTo(W * i / 12, H); g.stroke(); }
+    g.globalAlpha = .85; g.fillStyle = c2; g.fillRect(W * 6 / 12, H * .1, W * 5 / 12, H * .45);
+    if (comp === "bento") { g.fillStyle = c1; g.fillRect(W / 12, H * .62, W * 4 / 12, H * .28); }
+    sx = W * .72; sy = H * .5; ss = u * .34;
+  } else if (comp === "radial" || pk("culture") === "kolam") {
+    g.strokeStyle = c1; g.lineWidth = u * .012;
+    for (let r = 1; r < 8; r++) { g.globalAlpha = .55 - r * .05; g.beginPath(); g.arc(W / 2, H / 2, r * u * .09, 0, 7); g.stroke(); }
+    g.globalAlpha = .35;
+    for (let a = 0; a < 24; a++) { const t = a / 24 * Math.PI * 2; g.beginPath(); g.moveTo(W / 2, H / 2); g.lineTo(W / 2 + Math.cos(t) * W, H / 2 + Math.sin(t) * W); g.stroke(); }
+    sx = W / 2; sy = H * .55; ss = u * .4;
+  } else if (comp === "diagonal" || comp === "broken-grid") {
+    g.fillStyle = c2; g.translate(W / 2, H / 2); g.rotate(comp === "diagonal" ? -.35 : .06);
+    g.fillRect(-W, -H * .08, W * 2, H * .16);
+    if (comp === "broken-grid") { g.fillStyle = c1; g.fillRect(-W * .45, -H * .42, W * .3, H * .3); g.fillStyle = c0; g.globalAlpha = .2; g.fillRect(W * .1, H * .15, W * .4, H * .3); }
+    g.setTransform(1, 0, 0, 1, 0, 0); sx = W * .58; sy = H * .58; ss = u * .48;
+  } else if (comp === "symmetric" || comp === "triangular") {
+    sx = W / 2; sy = H * .58; ss = u * .44;
+  } else if (comp === "negative-space") {
+    sx = W * .78; sy = H * .7; ss = u * .2;
+  } else if (comp === "golden-ratio") {
+    g.strokeStyle = c0; g.globalAlpha = .25; g.lineWidth = 1.5;
+    let x = 0, y = 0, w = W, h = H;
+    for (let i = 0; i < 7; i++) { g.strokeRect(x, y, w, h); if (i % 2 === 0) { const nw = w * .618; x += w - nw; w = nw; } else { const nh = h * .618; h = nh; } }
+    sx = W * .69; sy = H * .58; ss = u * .4;
+  } else if (comp === "frame-in-frame") {
+    g.fillStyle = c0; g.globalAlpha = .85; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = "destination-out"; g.beginPath(); g.roundRect ? g.roundRect(W * .2, H * .12, W * .6, H * .88, [W * .3, W * .3, 0, 0]) : g.rect(W * .2, H * .12, W * .6, H * .88); g.fill();
+    g.globalCompositeOperation = "source-over"; sx = W / 2; sy = H * .6; ss = u * .36;
+  } else if (comp === "repetition") {
+    g.globalAlpha = .5;
+    for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) figure(g, W * (i + .5) / 6, H * (j + .7) / 3.2, u * .12, i === 4 && j === 1 ? c1 : c0);
+    sx = -999;
+  } else {
+    g.strokeStyle = c0; g.globalAlpha = .12;
+    [1, 2].forEach(i => { g.beginPath(); g.moveTo(W * i / 3, 0); g.lineTo(W * i / 3, H); g.moveTo(0, H * i / 3); g.lineTo(W, H * i / 3); g.stroke(); });
+  }
+  g.restore();
+  // isometric stadium
+  if (pk("perspective") === "isometric") {
+    const cx = W * .5, cy = H * .62;
+    const tiers = pk("layering") === "paper-cut" ? 5 : 3;
+    for (let t = 0; t < tiers; t++) {
+      const r = u * (.46 - t * .07);
+      g.fillStyle = [c0, c2, c1, c3, c2][t % 5]; g.shadowColor = "rgba(0,0,0,.25)"; g.shadowBlur = pk("layering") === "paper-cut" ? 10 : 0; g.shadowOffsetY = 4;
+      g.beginPath(); g.ellipse(cx, cy - t * u * .05, r * 1.4, r * .7, 0, 0, 7); g.fill();
+    }
+    g.shadowColor = "transparent"; g.fillStyle = "#6f9a52"; g.beginPath(); g.ellipse(cx, cy - tiers * u * .05, u * .16, u * .08, 0, 0, 7); g.fill();
+    sx = -999;
+  }
+  // light rays
+  if (["volumetric", "flood"].includes(pk("lighting"))) {
+    g.save(); g.globalAlpha = .18 + iv("lighting") * .2; g.fillStyle = c3 === "#F3F3EE" ? c1 : "#ffffff";
+    for (let i = 0; i < 4; i++) { const x = W * (.1 + i * .27); g.beginPath(); g.moveTo(x, 0); g.lineTo(x + W * .05, 0); g.lineTo(x + W * .3, H); g.lineTo(x + W * .05, H); g.fill(); }
+    g.restore();
+  }
+  // type placeholder (behind)
+  const hasType = d.picks.typeStructure || d.picks.letterform;
+  const integ = pk("typeIntegration");
+  const drawType = () => {
+    g.save(); g.fillStyle = c0;
+    const ts = pk("typeStructure"), big = ["brutal-type", "poster-type"].includes(ts) ? 1.6 : 1;
+    if (ts === "vertical-type") { g.fillRect(W * .06, H * .1, W * .05, H * .7); g.fillRect(W * .13, H * .1, W * .025, H * .45); }
+    else { g.fillRect(W * .06, H * .14, W * .34 * big, H * .085 * big); g.globalAlpha = .7; g.fillRect(W * .06, H * (.14 + .11 * big), W * .2, H * .03); g.fillStyle = c2; g.fillRect(W * .06, H * .08, W * .08, H * .02); }
+    g.restore();
+  };
+  if (hasType && integ === "behind") drawType();
+  // subject
+  if (sx > -999 && (d.picks.subject || d.picks.compositing)) {
+    const st = pk("subject"), cx2 = sx, cy2 = sy;
+    if (st === "crowd" || pk("metaphor") === "many-as-one") {
+      for (let i = 0; i < 40; i++) figure(g, R() * W, H * .7 + R() * H * .35, u * (.06 + R() * .05), R() < .2 ? c1 : c0);
+    } else {
+      const fill = st === "silhouette" ? c0 : c0;
+      // riso misregistration ghost
+      if (pk("print") === "riso" || pk("print") === "screen") { g.save(); g.globalAlpha = .75; g.globalCompositeOperation = "multiply"; figure(g, cx2 + u * .012 * (1 + iv("print") * 2), cy2 - u * .008, ss, c2); g.restore(); }
+      figure(g, cx2, cy2, ss, fill);
+      if (pk("compositing") === "double-exposure" || pk("compositing") === "silhouette-fill") {
+        g.save(); clipFigure(g, cx2, cy2, ss);
+        g.globalAlpha = .9; g.fillStyle = c3; g.fillRect(cx2 - ss, cy2 - ss * 1.2 + ss * .9, ss * 2, ss * 1.5);
+        g.fillStyle = c1;
+        for (let i = 0; i < 16; i++) { const bw = ss * (.06 + R() * .1), bh = ss * (.2 + R() * .7); g.fillRect(cx2 - ss + i * ss * .13, cy2 + ss * .9 - bh, bw, bh); }
+        g.fillStyle = c2; g.beginPath(); g.arc(cx2 + ss * .2, cy2 - ss * .1, ss * .14, 0, 7); g.fill();
+        g.restore();
+      }
+      if (pk("lighting") === "rim") { g.save(); g.strokeStyle = c1; g.lineWidth = u * .008; g.globalAlpha = .9; strokeFigure(g, cx2, cy2, ss); g.restore(); }
+    }
+  }
+  if (hasType && integ !== "behind") drawType();
+  // halftone / print / texture
+  const pr = pk("print"), tx = pk("texture"), ph = pk("photo");
+  if (pr === "halftone" || pr === "riso" || pr === "newsprint" || pk("colorTreatment") === "duotone") {
+    g.save(); g.globalAlpha = .18 + iv("print") * .25; g.fillStyle = c0; const st = u * .022;
+    for (let y = 0; y < H; y += st) for (let x = (y / st) % 2 ? st / 2 : 0; x < W; x += st) { const r = st * .32 * (y / H); g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); }
+    g.restore();
+  }
+  const grain = Math.max(tx ? iv("texture") : 0, pr === "photocopy" ? iv("print") : 0, ph === "bw-high" ? .4 : 0);
+  if (grain > 0) {
+    const n = Math.round(W * H * .02 * grain);
+    g.save();
+    for (let i = 0; i < n; i++) { g.fillStyle = R() < .5 ? "rgba(0,0,0,.22)" : "rgba(255,255,255,.22)"; g.fillRect(R() * W, R() * H, 1.4, 1.4); }
+    if (pr === "photocopy") { g.globalAlpha = .12; g.fillStyle = "#000"; for (let i = 0; i < 6; i++) g.fillRect(R() * W, 0, 1 + R() * 3, H); }
+    g.restore();
+  }
+  if (pk("framing") === "vignette" || pk("grading") === "faded") { const gr = g.createRadialGradient(W / 2, H / 2, u * .3, W / 2, H / 2, W * .7); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.35)"); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  if (pk("colorTreatment") === "monochrome" || ph === "bw-high") { g.save(); g.globalCompositeOperation = "saturation"; g.fillStyle = "#808080"; g.globalAlpha = pk("colorTreatment") === "selective" ? .6 : 1; g.fillRect(0, 0, W, H); g.restore(); }
+}
+function figPath(g, x, y, s) {
+  g.beginPath();
+  g.arc(x, y - s * .35, s * .26, 0, Math.PI * 2);
+  g.moveTo(x - s * .62, y + s * .9);
+  g.bezierCurveTo(x - s * .6, y + s * .2, x - s * .3, y - s * .02, x, y - s * .02);
+  g.bezierCurveTo(x + s * .3, y - s * .02, x + s * .6, y + s * .2, x + s * .62, y + s * .9);
+  g.closePath();
+}
+function figure(g, x, y, s, c) { g.fillStyle = c; figPath(g, x, y, s); g.fill(); }
+function clipFigure(g, x, y, s) { figPath(g, x, y, s); g.clip(); }
+function strokeFigure(g, x, y, s) { figPath(g, x, y, s); g.stroke(); }
+
+/* ============================================================
+   8. BUILT-IN RECOMMENDER (works without Claude)
+   ============================================================ */
+const ARCHETYPES = [
+  { keys: ["emotional", "premium", "tribute", "identity", "legend", "hero", "portrait", "relationship", "belong"], d: EXAMPLE.directions[0] },
+  { keys: ["stadium", "city", "place", "architecture", "ground", "map", "collect", "home"], d: EXAMPLE.directions[1] },
+  { keys: ["energy", "street", "urban", "youth", "bold", "raw", "power", "force", "movement"], d: EXAMPLE.directions[2] },
+  { keys: ["heritage", "craft", "history", "culture", "print", "tradition", "festival", "folk", "grounded", "cultural"], d: EXAMPLE.directions[3] },
+  { keys: ["calm", "minimal", "quiet", "luxury", "simple", "elegant", "clean"], d: { name: "Quiet monument", concept: "One small subject in a vast, charged empty field.",
+      why: "Negative space and a single isolated colour make the viewer lean in; restraint reads as premium and confident.",
+      palette: ["#1C1C1E", "#D4A017", "#9A9A92", "#EDEBE4"],
+      picks: { composition: P("negative-space", ["Single small focal point", "70% empty field"], 75), subject: P("silhouette", ["Backlit outline"], 50),
+        lighting: P("rim", ["Edge halo"], 40), colorTreatment: P("selective", ["Isolated brand colour"], 60), grading: P("lowsat", ["Desaturated mid-tones"], 45),
+        typeStructure: P("minimal-type", ["Wide tracking", "Small type"], 40), letterform: P("extended", ["Spaced capitals"], 45) } } },
+  { keys: ["dream", "surreal", "imagine", "magic", "story", "fantasy", "myth", "legacy"], d: { name: "Surreal scale", concept: "The idea shown as an impossible, giant presence over a tiny world.",
+      why: "Scale manipulation turns importance into size; forced perspective and volumetric light make it feel mythic rather than literal.",
+      palette: ["#1D2240", "#F2B33D", "#7A5FA8", "#E8E2F0"],
+      picks: { composition: P("symmetric", ["Central icon", "Mirror axis"], 55), perspective: P("worms-eye", ["Low angle", "Towering subject"], 65),
+        compositing: P("scale", ["Giant figure", "Miniature city"], 80), lighting: P("volumetric", ["God rays", "Dust in the beam"], 60),
+        atmosphere: P("haze", ["Aerial perspective"], 45), grading: P("teal-orange", ["Teal shadows"], 40), typeStructure: P("poster-type", ["One giant word"], 55) } } },
+  { keys: ["archive", "memory", "documentary", "news", "past", "years", "journey", "timeline", "decade"], d: { name: "Documentary archive", concept: "The story told as a pile of evidence from the past.",
+      why: "Archive documents, newsprint halftone and creases make the viewer feel they are reading real history, not an advert.",
+      palette: ["#2A2621", "#B5452F", "#8C7B5C", "#E9E1CE"],
+      picks: { layout: P("broadsheet", ["Masthead", "Multi-column"], 55), collage: P("archive", ["Old documents", "Stamps", "Annotations"], 70),
+        print: P("newsprint", ["Coarse halftone", "Yellowed paper"], 55), texture: P("creases", ["Fold lines", "Worn corners"], 50),
+        grading: P("warm-vintage", ["Amber cast"], 50), subject: P("environmental", ["Subject in context"], 50), typeStructure: P("mag-type", ["Serif display"], 50) } } },
+  { keys: ["celebrate", "celebration", "party", "fans", "joy", "loud", "crowd", "victory", "win"], d: { name: "Festival maximalism", concept: "The crowd's noise turned into colour, pattern and type.",
+      why: "Dense montage, fluoro colour and sticker energy capture celebration; the crowd becomes the hero instead of one person.",
+      palette: ["#1A1033", "#FFD400", "#FF3D7F", "#FFF6E0"],
+      picks: { layout: P("maximalist", ["Dense montage", "Layered type"], 75), subject: P("crowd", ["Raised hands", "Banners in the crowd"], 70),
+        colorChar: P("fluorescent", ["Fluoro pink", "Fluoro yellow"], 75), collage: P("sticker", ["Layered stickers"], 55),
+        atmosphere: P("particles", ["Confetti"], 60), typeIntegration: P("pattern", ["Repeated word field"], 60), typeStructure: P("poster-type", ["Stacked lines"], 65) } } }
+];
+function offlineDirections(b) {
+  const text = (b.idea + " " + (b.emotion || "") + " " + (b.character || "")).toLowerCase();
+  const avoid = (b.avoid || "").toLowerCase();
+  const scored = ARCHETYPES.map((a, i) => {
+    let s = a.keys.reduce((n, k) => n + (text.includes(k) ? 2 : 0), 0) + (4 - Math.min(i, 4)) * .1;
+    for (const p of Object.values(a.d.picks)) { const st = STYLES[p.style]; if (avoid && (avoid.includes(st.name.toLowerCase()) || st.techs.some(t => avoid.includes(t.toLowerCase())))) s -= 3; }
+    return { s, d: a.d };
+  }).sort((x, y) => y.s - x.s).slice(0, 4);
+  return scored.map((x, i) => ({ ...clone(x.d), rec: i === 0 }));
+}
+function offlineBrief(b) {
+  const t = b.idea.toLowerCase();
+  const emo = [["pride", "Pride"], ["belong", "Belonging"], ["nostalg", "Nostalgia"], ["joy", "Joy"], ["calm", "Calm"], ["anger", "Defiance"], ["hope", "Hope"], ["emotion", "Emotional"], ["energy", "Energy"]].filter(([k]) => t.includes(k)).map(x => x[1]);
+  const chr = [["premium", "Premium"], ["editorial", "Editorial"], ["playful", "Playful"], ["raw", "Raw"], ["minimal", "Minimal"], ["cultur", "Culturally grounded"], ["cinematic", "Cinematic"]].filter(([k]) => t.includes(k)).map(x => x[1]);
+  return { subject: b.subject || b.idea.split(/[.,]/)[0].slice(0, 60), message: b.message || "", emotion: emo.join(" + ") || b.emotion || "", character: chr.join(" + ") || b.character || "" };
+}
+/* natural-language tweak parser (no Claude) */
+function findStyles(text) {
+  const t = text.toLowerCase(), hits = [];
+  for (const s of Object.values(STYLES)) { const n = s.name.toLowerCase().replace(/[()]/g, ""); const i = t.indexOf(n.split(" / ")[0]); if (i >= 0) hits.push({ s, i }); }
+  return hits.sort((a, b) => a.i - b.i || b.s.name.length - a.s.name.length).filter((h, k, arr) => !arr.some((o, j) => j !== k && o.i <= h.i && o.i + o.s.name.length >= h.i + h.s.name.length && o.s.name.length > h.s.name.length));
+}
+function offlineRevise(text) {
+  const ops = [], t = text.toLowerCase();
+  for (const clause of t.split(/[.;]|\band\b(?= (?:remove|replace|reduce|increase|swap|add|drop|more|less))/)) {
+    const hits = findStyles(clause);
+    if (!hits.length) continue;
+    if (/replace|swap|instead|change/.test(clause) && hits.length >= 2) {
+      const [a, b] = hits;
+      if (a.s.family === b.s.family || !S.dir.picks[b.s.family]) { if (a.s.family !== b.s.family) ops.push({ op: "remove", family: a.s.family }); ops.push({ op: "replace", family: b.s.family, style: b.s.id }); }
+    } else if (/remove|drop|without|no /.test(clause)) hits.forEach(h => ops.push({ op: "remove", family: h.s.family }));
+    else if (/reduce|less|subtle|lower|tone down/.test(clause)) hits.forEach(h => ops.push({ op: "intensity", family: h.s.family, delta: -25 }));
+    else if (/increase|more|stronger|dominant|boost/.test(clause)) hits.forEach(h => ops.push({ op: "intensity", family: h.s.family, delta: 25 }));
+    else if (/add|use|try/.test(clause)) hits.forEach(h => ops.push({ op: "replace", family: h.s.family, style: h.s.id }));
+  }
+  return ops;
+}
+function applyOps(ops) {
+  const done = [], skipped = [];
+  for (const o of ops) {
+    const fam = FAMILY[o.family]; if (!fam) continue;
+    const cur = S.dir.picks[o.family];
+    if (cur?.locked) { skipped.push(fam.name + " (locked)"); continue; }
+    if (o.op === "remove" && cur) { delete S.dir.picks[o.family]; done.push("removed " + STYLES[cur.style].name); }
+    else if (o.op === "replace" && STYLES[o.style]?.family === o.family) {
+      const st = STYLES[o.style];
+      const techs = (o.techniques || []).filter(x => st.techs.includes(x));
+      S.dir.picks[o.family] = { style: o.style, techs: techs.length ? techs : st.techs.slice(0, 2), intensity: clampI(o.intensity ?? cur?.intensity ?? 55), locked: false };
+      done.push((cur ? STYLES[cur.style].name + " → " : "added ") + st.name);
+    } else if (o.op === "intensity" && cur) {
+      cur.intensity = clampI(o.intensity ?? cur.intensity + (o.delta || 0)); done.push(STYLES[cur.style].name + " → " + level(cur.intensity));
+    } else if (o.op === "techniques" && cur) {
+      const techs = (o.techniques || []).filter(x => STYLES[cur.style].techs.includes(x)); if (techs.length) { cur.techs = techs; done.push(STYLES[cur.style].name + " sub-techniques"); }
+    }
+  }
+  return { done, skipped };
+}
+const clampI = v => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+
+/* ============================================================
+   9. CLAUDE (sample capability) — optional, degrades cleanly
+   ============================================================ */
+let sample = null, sampleReady = false;
+(async () => { await null;
+  try { if (window.claude?.use) sample = await window.claude.use("sample"); } catch { sample = null; }
+  sampleReady = true; render();
+})();
+const sampleErr = e => ({ not_granted: "Claude access was declined for this page. The built-in engine is used instead.", rate_limited: "Too many requests right now. Wait a minute and try again.",
+  refused: "Claude declined this request. Try rewording it.", invalid_json: "Claude's answer could not be read. Try again.", session_expired: "Your session expired. Sign in again.",
+  cancelled: "Stopped." }[e?.code] || "Something went wrong reaching Claude. Try again.");
+function catalog() {
+  return FAMILIES.map(f => `## ${f.id} (${f.name}, ${f.layer === "design" ? "editable design layer" : "image layer"})\n` + f.styles.map(id => `${id}: ${STYLES[id].name} — ${STYLES[id].techs.join("; ")}`).join("\n")).join("\n");
+}
+function dirAsText(d) {
+  return `Name: ${d.name}\nConcept: ${d.concept}\nPalette: ${d.palette.join(", ")}\n` + sortedPicks(d).map(([f, p]) => `- ${f} = ${p.style} [${p.techs.join("; ")}] intensity ${p.intensity}${p.locked ? " LOCKED" : ""}`).join("\n");
+}
+function cleanDirection(raw) {
+  const picks = {};
+  for (const p of raw.picks || []) {
+    const st = STYLES[p.style]; if (!st) continue;
+    const fam = st.family; if (picks[fam]) continue;
+    const techs = (p.techniques || []).filter(x => st.techs.includes(x));
+    picks[fam] = { style: st.id, techs: techs.length ? techs.slice(0, 4) : st.techs.slice(0, 2), intensity: clampI(p.intensity ?? 55), locked: false };
+  }
+  const pal = (raw.palette || []).filter(c => /^#[0-9a-f]{6}$/i.test(c));
+  while (pal.length < 4) pal.push(["#22263A", "#E3A62C", "#D9614C", "#F1ECE2"][pal.length]);
+  return { name: String(raw.name || "Untitled direction").slice(0, 60), concept: String(raw.concept || ""), why: String(raw.why || ""), palette: pal.slice(0, 4), picks };
+}
+
+/* ============================================================
+   10. VIEWS
+   ============================================================ */
+const app = $("#app");
+let view = "brief", libSel = "double-exposure", libQ = "", sideTab = "prompt", cmpA = null, cmpB = null, revImage = null, busy = {};
+function route() {
+  const h = location.hash.slice(1);
+  view = ["brief", "directions", "editor", "library", "history"].includes(h) ? h : "editor";
+  render(); window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", route);
+function go(v) { if (location.hash !== "#" + v) location.hash = v; else route(); }
+
+function render() {
+  document.querySelectorAll("nav.tabs a").forEach(a => { if (a.getAttribute("href") === "#" + view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  ({ brief: viewBrief, directions: viewDirections, editor: viewEditor, library: viewLibrary, history: viewHistory })[view]();
+  save();
+}
+const claudeNote = () => !sampleReady ? "" : sample ? "" : `<p class="claude-note">Claude-assisted features aren't available in this view, so the built-in engine handles recommendations and tweaks. Open the page on claude.ai to use Claude.</p>`;
+
+/* ---- Brief ---- */
+function viewBrief() {
+  const b = S.brief;
+  app.innerHTML = `
+  <div class="pagehead"><div><div class="eyebrow">Creative brief studio</div><h1>Start from an idea</h1>
+    <p class="lede">Describe what the image should mean. The studio extracts the brief, then proposes four art directions built from ${Object.keys(STYLES).length} styles and ${TOTAL_TECHS} sub-techniques.</p></div></div>
+  <div class="brief-grid">
+    <form class="panel" id="briefForm">
+      <div class="fields">
+        <div class="full"><label class="f" for="idea">Idea</label><textarea id="idea" rows="5" placeholder="What should this image say, and to whom?">${esc(b.idea)}</textarea></div>
+        <div><label class="f" for="format">Format</label><select id="format">${Object.keys(FORMATS).map(f => `<option ${f === b.format ? "selected" : ""}>${f}</option>`).join("")}</select></div>
+        <div><label class="f" for="subject">Subject</label><input type="text" id="subject" value="${esc(b.subject)}"></div>
+        <div><label class="f" for="message">Core message</label><input type="text" id="message" value="${esc(b.message)}"></div>
+        <div><label class="f" for="emotion">Emotional register</label><input type="text" id="emotion" value="${esc(b.emotion)}"></div>
+        <div class="full"><label class="f" for="character">Visual character</label><input type="text" id="character" value="${esc(b.character)}"></div>
+        <div class="full"><label class="f" for="avoid">Don't repeat (novelty guard)</label><input type="text" id="avoid" value="${esc(b.avoid)}" placeholder="Visual clichés you've seen enough of">
+          <p class="hint">Directions that lean on these are pushed down or rewritten.</p></div>
+      </div>
+      <div class="row" style="margin-top:16px">
+        <button class="btn primary" type="submit" id="propose">${sample ? "Interpret and propose with Claude" : "Propose directions"}</button>
+        ${sample ? `<button class="btn" type="button" id="proposeLocal">Use built-in engine</button>` : ""}
+        <button class="btn ghost" type="button" id="resetEx">Load the CSK example</button>
+      </div>
+      <p class="status" id="briefStatus" role="status"></p>
+      ${claudeNote()}
+    </form>
+    <aside class="panel">
+      <div class="eyebrow">Creative brief extracted</div>
+      <div class="interp" style="margin-top:12px">
+        <div><span class="eyebrow">Subject</span><b>${esc(b.subject || "—")}</b></div>
+        <div><span class="eyebrow">Core message</span><b>${esc(b.message || "—")}</b></div>
+        <div><span class="eyebrow">Emotional register</span><b>${esc(b.emotion || "—")}</b></div>
+        <div><span class="eyebrow">Visual character</span><b>${esc(b.character || "—")}</b></div>
+        <div><span class="eyebrow">Format</span><b>${esc(b.format)}</b></div>
+        <div><span class="eyebrow">Avoid</span><b style="font-size:15px">${esc(b.avoid || "—")}</b></div>
+      </div>
+      <p class="hint" style="margin-top:14px">These are proposed interpretations. Edit any field on the left before proposing.</p>
+      ${S.example ? `<p style="margin-top:8px"><span class="tag ex">Example project</span></p>` : ""}
+    </aside>
+  </div>`;
+  const read = () => { for (const k of ["idea", "format", "subject", "message", "emotion", "character", "avoid"]) S.brief[k] = $("#" + k).value; };
+  $("#briefForm").addEventListener("input", () => { read(); save(); });
+  $("#briefForm").addEventListener("submit", e => { e.preventDefault(); read(); propose(!!sample); });
+  $("#proposeLocal")?.addEventListener("click", () => { read(); propose(false); });
+  $("#resetEx").addEventListener("click", () => { const keep = S.versions; S = freshState(); S.versions = keep; render(); });
+}
+async function propose(useClaude) {
+  const st = $("#briefStatus"), btn = $("#propose");
+  if (!S.brief.idea.trim()) { st.textContent = "Write the idea first."; st.className = "status err"; return; }
+  if (!useClaude) {
+    Object.assign(S.brief, offlineBrief(S.brief));
+    S.directions = offlineDirections(S.brief); S.example = false; save(); go("directions"); return;
+  }
+  btn.disabled = true; st.className = "status"; st.textContent = "Claude is reading the idea and assembling directions… this can take up to a minute.";
+  try {
+    const prompt = `You are a senior art director. Turn the idea into a brief and propose exactly 4 distinct art directions, built ONLY from the technique library below.
+
+IDEA: ${S.brief.idea}
+FORMAT: ${S.brief.format}
+USER'S BRIEF NOTES: subject=${S.brief.subject}; message=${S.brief.message}; emotion=${S.brief.emotion}; character=${S.brief.character}
+AVOID (do not repeat this visual vocabulary; novelty is an explicit goal): ${S.brief.avoid || "none"}
+
+LIBRARY (family id, then "style id: name — sub-techniques"):
+${catalog()}
+
+Reply with only JSON in this shape:
+{"brief":{"subject":"","message":"","emotion":"","character":""},
+ "directions":[{"name":"2-3 words","concept":"one sentence","why":"two sentences: why this combination serves the idea, and how its visual language differs from the other directions","palette":["#hex primary/dark","#hex accent","#hex secondary","#hex ground"],
+   "picks":[{"style":"style id","techniques":["copied exactly from that style"],"intensity":0-100}]}]}
+Rules: 6-8 picks per direction, at most one style per family, include at least one typography family. 1-3 techniques per pick. The 4 directions must use clearly different visual languages, not renamed variants. Mark intent through intensity: one or two dominant (>66) heroes, the rest supporting.`;
+    const out = await sample.json(prompt, { modelTier: "default" });
+    if (out?.brief) for (const k of ["subject", "message", "emotion", "character"]) if (out.brief[k]) S.brief[k] = String(out.brief[k]);
+    const dirs = (out?.directions || []).map(cleanDirection).filter(d => Object.keys(d.picks).length >= 3);
+    if (!dirs.length) throw { code: "invalid_json" };
+    dirs[0].rec = true; S.directions = dirs; S.example = false; save(); go("directions");
+  } catch (e) {
+    st.className = "status err"; st.textContent = sampleErr(e) + (e?.code === "not_granted" ? "" : " You can also use the built-in engine.");
+    if (e?.code === "not_granted") sample = null;
+  } finally { if (btn) btn.disabled = false; }
+}
+
+/* ---- Directions ---- */
+function viewDirections() {
+  app.innerHTML = `
+  <div class="pagehead"><div><div class="eyebrow">Combination lab</div><h1>Four ways to say it</h1>
+    <p class="lede">Each direction communicates the same idea through a different visual language. Open one in the editor to lock, swap and tune its vectors.</p></div>
+    <button class="btn" onclick="go('brief')">Edit brief</button></div>
+  <div class="dir-grid">${S.directions.map((d, i) => `
+    <article class="dcard">
+      <canvas data-i="${i}" aria-label="Schematic sketch of ${esc(d.name)}"></canvas>
+      <div class="body">
+        <div class="row"><span class="eyebrow">Direction ${i + 1}</span>${d.rec ? `<span class="tag rec">Recommended</span>` : ""}${S.example ? `<span class="tag ex">Example</span>` : ""}</div>
+        <h3>${esc(d.name)}</h3>
+        <div class="concept">${esc(d.concept)}</div>
+        <div class="swatches">${d.palette.map(c => `<i style="background:${c}" title="${c}"></i>`).join("")}</div>
+        <ul class="picklist">${sortedPicks(d).map(([f, p]) => `<li><span>${esc(FAMILY[f].name)}</span><span>${esc(STYLES[p.style].name)} <span class="hint">· ${level(p.intensity)}</span></span></li>`).join("")}</ul>
+        <div class="why"><b>Why this combination?</b> ${esc(d.why)}</div>
+        <div class="row" style="margin-top:auto"><button class="btn primary" data-open="${i}">Open in editor</button><span class="hint">Coherence ${coherence(d).score}</span></div>
+      </div>
+    </article>`).join("")}</div>`;
+  app.querySelectorAll("canvas[data-i]").forEach(cv => drawBoard(cv, S.directions[cv.dataset.i], S.brief.format, 560));
+  app.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
+    const d = clone(S.directions[b.dataset.open]); snapshot(); S.dir = d; S.note = "";
+    S.versions.push({ id: uid(), t: Date.now(), label: "Opened “" + d.name + "”", dir: clone(d) }); go("editor");
+  }));
+}
+
+/* ---- Editor ---- */
+function viewEditor() {
+  const d = S.dir, co = coherence(d), comp = compile();
+  const unused = FAMILIES.filter(f => !d.picks[f.id]);
+  app.innerHTML = `
+  <div class="pagehead">
+    <div style="flex:1;min-width:260px"><div class="eyebrow">Art direction editor${S.example ? ` · <span class="tag ex">Example</span>` : ""}</div>
+      <div class="dirtitle"><label class="eyebrow" for="dname" hidden>Direction name</label><input id="dname" type="text" value="${esc(d.name)}"></div>
+      <input id="dconcept" type="text" value="${esc(d.concept)}" style="border:none;background:transparent;padding:0;color:var(--muted);font-size:15px" aria-label="Concept"></div>
+    <div class="row">
+      <button class="btn" id="undo" ${undoStack.length ? "" : "disabled"}>Undo</button>
+      <button class="btn" id="rand">${ICON.dice} Randomise unlocked</button>
+      <button class="btn blue" id="savev">Save version</button>
+    </div>
+  </div>
+  <div class="ed-grid">
+    <section>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="row" style="justify-content:space-between"><span class="eyebrow">Colour palette</span>
+          <label class="toggle"><input type="checkbox" id="lockPal" ${d.paletteLocked ? "checked" : ""}> Lock palette</label></div>
+        <div class="pal" style="margin-top:8px">${d.palette.map((c, i) => `<label>${["primary", "accent", "second", "ground"][i]}<input type="color" data-pal="${i}" value="${c}"></label>`).join("")}</div>
+      </div>
+      <div class="vrows">${sortedPicks(d).map(([fid, p]) => vrow(fid, p)).join("")}</div>
+      <div class="row" style="margin-top:12px">
+        <label class="f" for="addFam" style="margin:0">Add a vector</label>
+        <select id="addFam" style="width:auto;flex:1;min-width:200px"><option value="">Choose a family…</option>${DOMAINS.map(dm => `<optgroup label="${dm}">${unused.filter(f => f.domain === dm).map(f => `<option value="${f.id}">${f.name}</option>`).join("")}</optgroup>`).join("")}</select>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="panel proof">
+        <div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="eyebrow">Proof sketch · ${esc(S.brief.format)}</span><span class="hint">Schematic, not the final image</span></div>
+        <canvas id="board"></canvas>
+      </div>
+      <div class="panel">
+        <div class="score"><span class="num">${co.score}</span><div style="flex:1"><div class="eyebrow">Coherence</div><div class="meter"><i style="width:${co.score}%;background:${co.score >= 75 ? "var(--good)" : co.score >= 55 ? "var(--warn)" : "var(--bad)"}"></i></div></div></div>
+        <ul class="rels">${co.rels.map(r => `<li><span class="k ${r.k === "+" ? "plus" : r.k === "~" ? "tilde" : "x"}">${r.k === "x" ? "×" : r.k}</span><span><b>${esc(STYLES[r.a].name)} + ${esc(STYLES[r.b].name)}</b> — ${esc(r.note)}</span></li>`).join("")}
+          ${co.warnings.map(w => `<li><span class="k tilde">!</span><span>${esc(w)}</span></li>`).join("")}
+          ${!co.rels.length && !co.warnings.length ? `<li><span class="k">·</span><span class="hint">No known relationships between these picks yet. Unexpected combinations can still work.</span></li>` : ""}</ul>
+      </div>
+      <div class="panel">
+        <div class="subtabs" role="tablist">${[["prompt", "Generation prompt"], ["revise", "Tweak"], ["ask", "Ask why"]].map(([k, l]) => `<button role="tab" data-side="${k}" aria-selected="${sideTab === k}">${l}</button>`).join("")}</div>
+        ${sideTab === "prompt" ? `
+          <label class="toggle" style="margin-bottom:8px"><input type="checkbox" id="noType" ${S.noTypeInImage ? "checked" : ""}> Keep typography out of the image (add it as an editable layer)</label>
+          <pre class="out" id="promptOut">${esc(comp.prompt)}${comp.avoid ? "\n\nAVOID: " + esc(comp.avoid) : ""}</pre>
+          <div class="row" style="margin-top:10px"><button class="btn primary" data-copy="promptOut">Copy prompt</button>${sample ? `<button class="btn" id="polish">Polish with Claude</button>` : ""}</div>
+          ${comp.designLayer ? `<div class="eyebrow" style="margin-top:16px">Design layer spec · not generated</div><pre class="out" id="designOut" style="margin-top:6px">${esc(comp.designLayer)}</pre><div class="row" style="margin-top:8px"><button class="btn sm" data-copy="designOut">Copy design spec</button></div>` : ""}
+          <div class="ans" id="polishOut"></div>
+          <p class="hint" style="margin-top:10px">Paste the prompt into the image generator you use. This studio plans and tracks the direction; it does not render the final image.</p>`
+        : sideTab === "revise" ? `
+          <label class="f" for="note">What would you like changed in the next iteration?</label>
+          <textarea id="note" rows="3" placeholder="Keep the composition and colour. Replace double exposure with paper-cut depth and reduce the texture.">${esc(S.note)}</textarea>
+          ${sample ? `<div class="filebox" style="margin-top:8px"><label class="btn sm" for="revImg">Attach the output you got</label><input type="file" id="revImg" accept="image/*" hidden>${revImage ? `<img src="${revImage.url}" alt="Attached output"><button class="btn sm ghost" id="clearImg">Remove</button>` : `<span class="hint">Optional. Claude compares it to the direction.</span>`}</div>` : ""}
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="applyRev">${sample ? "Apply with Claude" : "Apply tweak"}</button>${sample ? `<button class="btn" id="applyLocal">Apply literally</button>` : ""}<button class="btn" data-copy="revOut">Copy revision spec</button></div>
+          <p class="status" id="revStatus" role="status"></p>
+          <pre class="out" id="revOut" style="margin-top:8px">${esc(revisionSpec())}</pre>
+          <p class="hint" style="margin-top:8px">Locked vectors are never changed. Plain commands work offline: “remove halftone”, “replace double exposure with paper-cut depth”, “reduce paper grain”.</p>`
+        : `
+          ${sample ? `<label class="f" for="askq">Ask about this direction</label>
+          <textarea id="askq" rows="3">Why does this combination work? What changes if I replace the compositing technique with image masking while keeping everything else?</textarea>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="askBtn">Ask Claude</button><button class="btn" id="askStop" hidden>Stop</button></div>
+          <div class="ans" id="askOut"></div>` : `<p class="hint">Open the Library to read what each technique does, what it pairs with and what it conflicts with.</p>${claudeNote()}`}`}
+      </div>
+    </aside>
+  </div>`;
+  drawBoard($("#board"), d);
+  bindEditor();
+}
+function vrow(fid, p) {
+  const f = FAMILY[fid], s = STYLES[p.style];
+  return `<div class="vrow ${p.locked ? "locked" : ""} ${f.layer === "design" ? "design" : ""}" data-fam="${fid}">
+    <div style="min-width:0">
+      <div class="fam"><span class="eyebrow">${esc(f.name)}</span>${f.layer === "design" ? `<span class="tag">Design layer</span>` : ""}</div>
+      <select data-style aria-label="${esc(f.name)} style" ${p.locked ? "disabled" : ""}>${f.styles.map(id => `<option value="${id}" ${id === p.style ? "selected" : ""}>${esc(STYLES[id].name)}</option>`).join("")}</select>
+      <div class="hint">${esc(s.effect)}</div>
+    </div>
+    <div class="acts">
+      <button class="iconbtn" data-lock aria-pressed="${p.locked}" title="${p.locked ? "Unlock" : "Lock"} ${esc(f.name)}" aria-label="Lock ${esc(f.name)}">${ICON.lock}</button>
+      <button class="iconbtn" data-reroll title="Try another ${esc(f.name)}" aria-label="Randomise ${esc(f.name)}" ${p.locked ? "disabled" : ""}>${ICON.dice}</button>
+      <button class="iconbtn" data-remove title="Remove ${esc(f.name)}" aria-label="Remove ${esc(f.name)}" ${p.locked ? "disabled" : ""}>${ICON.x}</button>
+    </div>
+    <div class="chips full">${s.techs.map(t => `<button class="chip" data-tech="${esc(t)}" aria-pressed="${p.techs.includes(t)}" ${p.locked ? "disabled" : ""}>${esc(t)}</button>`).join("")}</div>
+    <div class="intens full"><label for="int-${fid}">Subtle</label><input type="range" id="int-${fid}" min="0" max="100" value="${p.intensity}" data-int ${p.locked ? "disabled" : ""}><span>Dominant</span><output>${p.intensity}% · ${level(p.intensity)}</output></div>
+  </div>`;
+}
+function randomStyleFor(fid, keepIds) {
+  const f = FAMILY[fid];
+  const bad = new Set(RULES.filter(r => r[2] === "x").flatMap(r => keepIds.includes(r[0]) ? [r[1]] : keepIds.includes(r[1]) ? [r[0]] : []));
+  const good = new Set(RULES.filter(r => r[2] === "+").flatMap(r => keepIds.includes(r[0]) ? [r[1]] : keepIds.includes(r[1]) ? [r[0]] : []));
+  const pool = f.styles.filter(id => !bad.has(id) && id !== S.dir.picks[fid]?.style);
+  const pref = pool.filter(id => good.has(id));
+  const list = pref.length && Math.random() < .6 ? pref : pool;
+  const id = list[Math.floor(Math.random() * list.length)] || f.styles[0];
+  const techs = [...STYLES[id].techs].sort(() => Math.random() - .5).slice(0, 2);
+  return { style: id, techs };
+}
+function bindEditor() {
+  const d = S.dir;
+  $("#dname").addEventListener("change", e => { snapshot(); d.name = e.target.value || "Untitled"; render(); });
+  $("#dconcept").addEventListener("change", e => { d.concept = e.target.value; render(); });
+  $("#undo").addEventListener("click", () => { if (undoStack.length) { S.dir = undoStack.pop(); render(); } });
+  $("#rand").addEventListener("click", () => {
+    snapshot();
+    const keep = Object.values(d.picks).filter(p => p.locked).map(p => p.style);
+    for (const [fid, p] of Object.entries(d.picks)) if (!p.locked) { const r = randomStyleFor(fid, keep); Object.assign(p, r); keep.push(r.style); }
+    render();
+  });
+  $("#savev").addEventListener("click", () => {
+    S.versions.push({ id: uid(), t: Date.now(), label: S.note ? S.note.slice(0, 80) : "Saved “" + d.name + "”", dir: clone(d) });
+    const b = $("#savev"); render(); const nb = $("#savev"); if (nb) { nb.textContent = "Saved"; setTimeout(() => { if ($("#savev")) $("#savev").textContent = "Save version"; }, 1400); }
+  });
+  $("#lockPal").addEventListener("change", e => { d.paletteLocked = e.target.checked; save(); });
+  app.querySelectorAll("[data-pal]").forEach(inp => inp.addEventListener("change", e => { snapshot(); d.palette[+inp.dataset.pal] = e.target.value; render(); }));
+  app.querySelectorAll(".vrow").forEach(row => {
+    const fid = row.dataset.fam, p = d.picks[fid];
+    row.querySelector("[data-style]").addEventListener("change", e => { snapshot(); p.style = e.target.value; p.techs = STYLES[p.style].techs.slice(0, 2); render(); });
+    row.querySelector("[data-lock]").addEventListener("click", () => { p.locked = !p.locked; render(); });
+    row.querySelector("[data-remove]").addEventListener("click", () => { snapshot(); delete d.picks[fid]; render(); });
+    row.querySelector("[data-reroll]").addEventListener("click", () => { snapshot(); const keep = Object.entries(d.picks).filter(([f]) => f !== fid).map(([, q]) => q.style); Object.assign(p, randomStyleFor(fid, keep)); render(); });
+    row.querySelectorAll("[data-tech]").forEach(c => c.addEventListener("click", () => { snapshot(); const t = c.dataset.tech; p.techs = p.techs.includes(t) ? p.techs.filter(x => x !== t) : [...p.techs, t]; render(); }));
+    const rg = row.querySelector("[data-int]");
+    rg.addEventListener("input", () => { p.intensity = +rg.value; row.querySelector("output").textContent = rg.value + "% · " + level(+rg.value); drawBoard($("#board"), d); });
+    rg.addEventListener("change", () => { snapshot(); render(); });
+  });
+  $("#addFam").addEventListener("change", e => { const fid = e.target.value; if (!fid) return; snapshot(); const keep = Object.values(d.picks).map(p => p.style); d.picks[fid] = { ...randomStyleFor(fid, keep), intensity: 50, locked: false }; render(); });
+  app.querySelectorAll("[data-side]").forEach(b => b.addEventListener("click", () => { sideTab = b.dataset.side; render(); }));
+  app.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => copyFrom(b.dataset.copy, b)));
+  $("#noType")?.addEventListener("change", e => { S.noTypeInImage = e.target.checked; render(); });
+  $("#polish")?.addEventListener("click", polishPrompt);
+  const note = $("#note");
+  if (note) note.addEventListener("input", () => { S.note = note.value; save(); $("#revOut").textContent = revisionSpec(); });
+  $("#applyRev")?.addEventListener("click", () => applyRevision(!!sample));
+  $("#applyLocal")?.addEventListener("click", () => applyRevision(false));
+  $("#revImg")?.addEventListener("change", e => { const f = e.target.files?.[0]; if (f) { if (revImage) URL.revokeObjectURL(revImage.url); revImage = { file: f, url: URL.createObjectURL(f) }; render(); } });
+  $("#clearImg")?.addEventListener("click", () => { URL.revokeObjectURL(revImage.url); revImage = null; render(); });
+  $("#askBtn")?.addEventListener("click", askClaude);
+}
+async function copyFrom(id, btn) {
+  const el = $("#" + id); if (!el) return;
+  try { await navigator.clipboard.writeText(el.textContent); btn.textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Selected — press Ctrl/⌘ C"; }
+  setTimeout(() => { if (btn.isConnected) btn.textContent = btn.dataset.copy === "promptOut" ? "Copy prompt" : btn.dataset.copy === "designOut" ? "Copy design spec" : "Copy revision spec"; }, 1600);
+}
+async function applyRevision(useClaude) {
+  const st = $("#revStatus"); S.note = $("#note").value;
+  if (!S.note.trim() && !revImage) { st.className = "status err"; st.textContent = "Describe what to change first."; return; }
+  const before = clone(S.dir);
+  if (!useClaude) {
+    const ops = offlineRevise(S.note);
+    if (!ops.length) { st.className = "status err"; st.textContent = "No technique names found in the note. Name them as they appear in the rows, e.g. “remove halftone”."; return; }
+    snapshot(); const r = applyOps(ops);
+    finishRevision(before, r, "");
+    return;
+  }
+  const btn = $("#applyRev"); btn.disabled = true; st.className = "status"; st.textContent = "Claude is revising the direction…";
+  try {
+    const prompt = `You are revising an art direction. Change only what the feedback asks for; never touch LOCKED families${S.dir.paletteLocked ? " or the palette (it is locked)" : ""}.
+
+CURRENT DIRECTION:
+${dirAsText(S.dir)}
+
+BRIEF: ${S.brief.idea}
+FEEDBACK: ${S.note || "(see attached image)"}
+${revImage ? "The attached image is the output generated from this direction. Compare it to the direction and the feedback, and fix what is not working." : ""}
+
+LIBRARY:
+${catalog()}
+
+Reply with only JSON:
+{"summary":"one sentence: what you changed and why",
+ "ops":[{"op":"replace","family":"family id","style":"style id","techniques":["exact names"],"intensity":0-100},{"op":"remove","family":"family id"},{"op":"intensity","family":"family id","intensity":0-100},{"op":"techniques","family":"family id","techniques":["exact names"]}],
+ "palette":null,
+ "promptNote":"one short instruction for the image generator, or empty"}
+Use "palette":["#hex","#hex","#hex","#hex"] only if colour must change.`;
+    const opts = { modelTier: "default", cache: false };
+    if (revImage) opts.images = [revImage.file];
+    const out = await sample.json(prompt, opts);
+    snapshot();
+    const r = applyOps(Array.isArray(out?.ops) ? out.ops : []);
+    if (Array.isArray(out?.palette) && !S.dir.paletteLocked && out.palette.every(c => /^#[0-9a-f]{6}$/i.test(c)) && out.palette.length === 4) { S.dir.palette = out.palette; r.done.push("new palette"); }
+    if (out?.promptNote) S.note = String(out.promptNote);
+    finishRevision(before, r, out?.summary || "");
+  } catch (e) {
+    st.className = "status err"; st.textContent = sampleErr(e);
+    if (["not_granted", "images_unavailable"].includes(e?.code)) { if (e.code === "not_granted") sample = null; }
+  } finally { if (btn.isConnected) btn.disabled = false; }
+}
+function finishRevision(before, r, summary) {
+  const label = summary || ("Tweak: " + (r.done.join(", ") || "no change"));
+  S.versions.push({ id: uid(), t: Date.now(), label: label.slice(0, 120), dir: clone(S.dir), note: S.note });
+  render();
+  const st = $("#revStatus");
+  if (st) { st.className = r.done.length ? "status" : "status err"; st.textContent = (r.done.length ? "Changed: " + r.done.join(", ") + "." : "Nothing changed.") + (r.skipped.length ? " Skipped: " + r.skipped.join(", ") + "." : "") + " Saved as a new version."; }
+}
+let askCtl = null;
+async function askClaude() {
+  const out = $("#askOut"), q = $("#askq").value.trim(); if (!q) return;
+  askCtl = new AbortController(); $("#askBtn").disabled = true; $("#askStop").hidden = false; $("#askStop").onclick = () => askCtl.abort();
+  out.textContent = "Thinking…";
+  try {
+    await sample(`You are an art director teaching a designer. Answer plainly and specifically about this direction, in under 220 words. Refer to techniques by name. If asked about a swap, say what changes visually and emotionally and what stays.
+
+BRIEF: ${S.brief.idea}
+DIRECTION:
+${dirAsText(S.dir)}
+
+QUESTION: ${q}`, { signal: askCtl.signal, onText: ({ text }) => { out.textContent = text; } });
+  } catch (e) { out.textContent = (e.text || "") + (e.code === "cancelled" ? "" : "\n\n" + sampleErr(e)); }
+  finally { if ($("#askBtn")) { $("#askBtn").disabled = false; $("#askStop").hidden = true; } }
+}
+async function polishPrompt() {
+  const out = $("#polishOut"), comp = compile(); out.textContent = "Thinking…";
+  try {
+    await sample(`Rewrite this art-direction spec as one vivid, precise image-generation prompt (120-180 words, natural language, describe the picture, not the process). Keep every technique and the hex palette. End with a line "Avoid: ...".\n\n${comp.prompt}\nAvoid: ${comp.avoid}`,
+      { onText: ({ text }) => { out.textContent = text; } });
+  } catch (e) { out.textContent = (e.text || "") + "\n\n" + sampleErr(e); }
+}
+
+/* ---- Library ---- */
+function viewLibrary() {
+  const q = libQ.toLowerCase();
+  const match = s => !q || (s.name + " " + s.effect + " " + s.techs.join(" ") + " " + FAMILY[s.family].name).toLowerCase().includes(q);
+  const inUse = new Set(Object.values(S.dir.picks).map(p => p.style));
+  const sel = STYLES[libSel] || STYLES["double-exposure"], fam = FAMILY[sel.family];
+  const rel = RULES.filter(r => (r[0] === sel.id || r[1] === sel.id) && r[3]).map(r => ({ other: STYLES[r[0] === sel.id ? r[1] : r[0]], k: r[2], note: r[3] }));
+  const cur = S.dir.picks[fam.id];
+  app.innerHTML = `
+  <div class="pagehead"><div><div class="eyebrow">Technique atlas</div><h1>Vector library</h1>
+    <p class="libstats" style="margin-top:10px"><b>${FAMILIES.length}</b>families · <b>${Object.keys(STYLES).length}</b>styles · <b>${TOTAL_TECHS}</b>sub-techniques · <b>${RULES.filter(r => r[3]).length}</b>relationships</p></div>
+    <div style="min-width:260px;flex:0 1 360px"><label class="f" for="libq">Search techniques</label><input type="text" id="libq" value="${esc(libQ)}" placeholder="halftone, silhouette, golden hour…"></div></div>
+  <div class="lib-grid">
+    <section>${DOMAINS.map(dm => {
+      const fams = FAMILIES.filter(f => f.domain === dm && f.styles.some(id => match(STYLES[id])));
+      if (!fams.length) return "";
+      return `<div class="domain"><h2>${dm}</h2>${fams.map(f => `<div class="fam-block"><h3>${esc(f.name)} <small>${f.styles.length} styles · ${f.layer === "design" ? "design layer" : "image layer"}</small></h3>
+        <div class="stylebtns">${f.styles.filter(id => match(STYLES[id])).map(id => `<button class="stylebtn ${inUse.has(id) ? "inuse" : ""}" data-sel="${id}" aria-current="${id === sel.id}">${esc(STYLES[id].name)}</button>`).join("")}</div></div>`).join("")}</div>`;
+    }).join("") || `<div class="empty">Nothing matches “${esc(libQ)}”.</div>`}
+    <p class="hint" style="margin-top:14px">An underline marks techniques used in the current direction.</p></section>
+    <aside class="panel detail">
+      <div class="eyebrow">${esc(fam.domain)} · ${esc(fam.name)}</div>
+      <h2 style="margin-top:6px">${esc(sel.name)}</h2>
+      <p class="effect">${esc(sel.effect)}</p>
+      <span class="tag">${fam.layer === "design" ? "Design layer: stays editable, not generated" : "Image layer: generated into the artwork"}</span>
+      <dl class="kv">
+        <dt>Sub-techniques</dt><dd><div class="chips">${sel.techs.map(t => `<span class="chip" style="cursor:default">${esc(t)}</span>`).join("")}</div></dd>
+        <dt>Parameters</dt><dd>${fam.params.map(esc).join(" · ")} · Intensity</dd>
+        <dt>Works with</dt><dd>${rel.filter(r => r.k === "+").map(r => `<b>${esc(r.other.name)}</b> — ${esc(r.note)}`).join("<br>") || `<span class="hint">No recorded pairings yet.</span>`}</dd>
+        <dt>Productive tension</dt><dd>${rel.filter(r => r.k === "~").map(r => `<b>${esc(r.other.name)}</b> — ${esc(r.note)}`).join("<br>") || `<span class="hint">—</span>`}</dd>
+        <dt>Conflicts</dt><dd>${rel.filter(r => r.k === "x").map(r => `<b>${esc(r.other.name)}</b> — ${esc(r.note)}`).join("<br>") || `<span class="hint">—</span>`}</dd>
+        <dt>Other ${esc(fam.name.toLowerCase())}</dt><dd>${fam.styles.filter(id => id !== sel.id).map(id => `<a href="#library" data-sel="${id}">${esc(STYLES[id].name)}</a>`).join(", ")}</dd>
+      </dl>
+      <div class="row">
+        <button class="btn primary" id="useStyle" ${cur?.locked ? "disabled" : ""}>${cur ? (cur.style === sel.id ? "In the current direction" : "Replace " + esc(STYLES[cur.style].name)) : "Add to current direction"}</button>
+        ${sample ? `<button class="btn" id="teach">Teach me this technique</button>` : ""}
+      </div>
+      ${cur?.locked ? `<p class="hint" style="margin-top:6px">${esc(fam.name)} is locked in the editor.</p>` : ""}
+      <div class="ans" id="teachOut"></div>
+    </aside>
+  </div>`;
+  const qi = $("#libq");
+  qi.addEventListener("input", () => { libQ = qi.value; const pos = qi.selectionStart; viewLibrary(); const n = $("#libq"); n.focus(); n.setSelectionRange(pos, pos); });
+  app.querySelectorAll("[data-sel]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); libSel = b.dataset.sel; viewLibrary(); }));
+  $("#useStyle").addEventListener("click", () => {
+    if (cur?.style === sel.id) { go("editor"); return; }
+    snapshot(); S.dir.picks[fam.id] = { style: sel.id, techs: sel.techs.slice(0, 2), intensity: cur?.intensity ?? 50, locked: false }; save(); go("editor");
+  });
+  $("#teach")?.addEventListener("click", async () => {
+    const out = $("#teachOut"); out.textContent = "Thinking…";
+    try {
+      await sample(`Teach the visual technique "${sel.name}" (${fam.name}) to a designer learning art direction. Use these short labelled sections: What it is; What it looks like; What problem it solves; When to use it; Variations (use: ${sel.techs.join(", ")}); Pairs well with; Three applications (one sentence each). Under 260 words, plain language.`,
+        { cache: { gcTime: 86400000 }, onText: ({ text }) => { out.textContent = text; } });
+    } catch (e) { out.textContent = (e.text || "") + "\n\n" + sampleErr(e); }
+  });
+}
+
+/* ---- History ---- */
+function viewHistory() {
+  const V = S.versions;
+  if (!cmpA && V.length > 1) { cmpA = V[V.length - 2].id; cmpB = V[V.length - 1].id; }
+  const A = V.find(v => v.id === cmpA), B = V.find(v => v.id === cmpB);
+  app.innerHTML = `
+  <div class="pagehead"><div><div class="eyebrow">Iteration & version history</div><h1>Versions</h1>
+    <p class="lede">Every opened direction, saved version and applied tweak is recorded here. Tick A and B to compare, or restore any version into the editor.</p></div>
+    <button class="btn ghost" id="clearH" ${V.length > 1 ? "" : "disabled"}>Clear history</button></div>
+  ${V.length ? `<div class="vlist">${V.slice().reverse().map((v, ri) => { const i = V.length - 1 - ri; return `
+    <div class="vitem"><span class="eyebrow">v${i + 1}</span><canvas data-v="${i}"></canvas>
+      <div style="min-width:0"><b>${esc(v.dir.name)}</b><div>${esc(v.label)}</div><div class="meta">${new Date(v.t).toLocaleString()} · ${Object.keys(v.dir.picks).length} vectors · coherence ${coherence(v.dir).score}</div></div>
+      <div class="row vacts"><label class="toggle"><input type="radio" name="cmpA" value="${v.id}" ${v.id === cmpA ? "checked" : ""}> A</label><label class="toggle"><input type="radio" name="cmpB" value="${v.id}" ${v.id === cmpB ? "checked" : ""}> B</label>
+        <button class="btn sm" data-restore="${i}">Restore</button></div></div>`; }).join("")}</div>` : `<div class="empty">No versions yet. Open a direction or save one from the editor.</div>`}
+  ${A && B ? `<div class="panel" style="margin-top:20px"><div class="eyebrow">Compare</div><h2 style="font-size:22px;margin:6px 0 12px">A: ${esc(A.dir.name)} → B: ${esc(B.dir.name)}</h2>
+    <div class="tblwrap"><table class="diff"><thead><tr><th>Vector</th><th>A · v${V.indexOf(A) + 1}</th><th>B · v${V.indexOf(B) + 1}</th></tr></thead>
+    <tbody>${diffDirs(A.dir, B.dir).map(r => `<tr class="${r.changed ? "chg" : ""}"><td>${esc(r.family)}</td><td>${esc(r.a)}</td><td>${esc(r.b)}</td></tr>`).join("")}</tbody></table></div></div>` : ""}`;
+  app.querySelectorAll("canvas[data-v]").forEach(cv => drawBoard(cv, V[cv.dataset.v].dir, S.brief.format, 160));
+  app.querySelectorAll("input[name=cmpA]").forEach(r => r.addEventListener("change", () => { cmpA = r.value; viewHistory(); }));
+  app.querySelectorAll("input[name=cmpB]").forEach(r => r.addEventListener("change", () => { cmpB = r.value; viewHistory(); }));
+  app.querySelectorAll("[data-restore]").forEach(b => b.addEventListener("click", () => { snapshot(); S.dir = clone(V[b.dataset.restore].dir); go("editor"); }));
+  $("#clearH").addEventListener("click", function () {
+    if (this.dataset.armed) { S.versions = [{ id: uid(), t: Date.now(), label: "History cleared", dir: clone(S.dir) }]; cmpA = cmpB = null; render(); }
+    else { this.dataset.armed = 1; this.textContent = "Click again to clear"; }
+  });
+}
+
+route();
+</script>
+
+</body>
+</html>
